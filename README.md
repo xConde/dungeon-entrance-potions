@@ -1,5 +1,7 @@
 # Dungeon Entrance Potions
 
+![Dungeon Entrance Potions shop with customers, potion stock, and dungeon activity](docs/images/potion-counter.webp)
+
 A shop game about the last stop before a dungeon. Price potions, equip each visitor, and see how those choices affect the expedition below.
 
 Originally part of [edconde.com](https://edconde.com); this repository holds the standalone game. Runs are seeded, audio is synthesized in the browser, and saves remain in local storage. There is no account or backend.
