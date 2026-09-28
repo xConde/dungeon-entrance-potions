@@ -1,0 +1,50 @@
+<div class="merchant-wares-panel">
+  <h2 class="panel-title">Merchant's Wares</h2>
+
+  <!--
+    Mirror of the middle .merchant-scroll-area pattern: the wares list lives
+    in its own scrollable container with appScrollableFade so future expansion
+    (more wares, longer descriptions) can grow without pushing Buy All
+    off-screen. With only 5 wares the scroll typically doesn't engage; the
+    fade indicator only renders when content overflows.
+  -->
+  <div class="wares-scroll-area" appScrollableFade [watchContent]="true">
+    <div class="merchant-wares-list">
+      @for (potion of potions; track potion.merchantKey) {
+        <div class="ware-item" [class.sold-out]="isSoldOut(potion.merchantKey)">
+          <app-potion-bottle [color]="potion.color" size="small" />
+          <div class="ware-info">
+            <span class="ware-name">{{ potion.name }}</span>
+            <span class="ware-stock">{{ inventory[potion.merchantKey].available }} available</span>
+          </div>
+          <button
+            class="buy-btn"
+            (click)="onBuyPotion(potion.merchantKey)"
+            [disabled]="isSoldOut(potion.merchantKey) || !canAfford(potion.merchantKey)"
+            [attr.aria-label]="'Buy ' + potion.name + ' for ' + inventory[potion.merchantKey].cost + ' gold'"
+          >
+            <span class="coin">{{ inventory[potion.merchantKey].cost }}</span>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!--
+    Pinned action footer. Sibling of .wares-scroll-area so Buy All stays
+    visible regardless of how far the wares list scrolls — same pattern as
+    .merchant-action in the middle panel.
+  -->
+  @if (totalCost > 0) {
+    <div class="wares-action">
+      <button
+        class="bulk-btn"
+        (click)="onBuyAll()"
+        [disabled]="gold < totalCost"
+        [attr.aria-label]="'Buy all potions for ' + totalCost + ' gold'"
+      >
+        Buy All <span class="coin">{{ totalCost }}</span>
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,92 @@
+<div class="shell-game-container">
+  <div class="shell-header">
+    <span class="shell-title">
+      Stock Rescue
+      @if (phase === 'idle' || phase === 'pick') {
+        <span class="shell-title-hint">Track {{ potionLabel }} for your customer.</span>
+      }
+    </span>
+    <!-- Status -->
+    <span class="shell-status">
+      @if (phase === 'pick' && lastResult === null) {
+        <span class="shell-pick-prompt">Pick!</span>
+        <span class="shell-timer">{{ pickTimer }}s</span>
+      }
+      @if (lastResult !== null) {
+        <span class="shell-result" aria-live="polite" [class.win]="lastResult === 'win'">{{ getResultMessage() }}</span>
+      }
+      @if (phase === 'shuffle') {
+        <span class="shell-hint">Watch closely...</span>
+      }
+      @if (phase === 'reveal') {
+        <span class="shell-hint">Remember {{ potionLabel }}!</span>
+      }
+      @if ((phase === 'idle' || phase === 'cover') && lastResult === null) {
+        <span class="shell-hint">{{ winsUntilDouble }} win{{ winsUntilDouble === 1 ? '' : 's' }} to ×2</span>
+      }
+    </span>
+  </div>
+
+  <div class="shell-game-area">
+    <!-- Hat positions with potions underneath -->
+    <div class="shell-hats-row">
+      @for (hatIndex of [0, 1, 2]; track hatIndex) {
+        <div
+          class="hat-slot"
+          role="button"
+          [attr.tabindex]="phase === 'pick' && selectedHat === null ? 0 : -1"
+          [attr.aria-label]="'Choose hat ' + (hatIndex + 1) + ' to find ' + potionLabel"
+          [attr.aria-pressed]="selectedHat === hatIndex"
+          [style.transform]="'translateX(calc(' + (hatPositions[hatIndex] - hatIndex) + ' * var(--hat-spacing)))'"
+          [class.clickable]="phase === 'pick' && selectedHat === null"
+          [class.selected]="selectedHat === hatIndex"
+          (click)="selectHat(hatIndex)"
+          (keydown.enter)="selectHat(hatIndex); $event.stopPropagation()"
+          (keydown.space)="selectHat(hatIndex); $event.preventDefault(); $event.stopPropagation()"
+        >
+          <!-- Potion under this hat -->
+          @if (potionPosition === hatIndex) {
+            <div
+              class="shell-potion"
+              [class.visible]="phase === 'reveal' || phase === 'result' || lastResult === 'win'"
+              [class.collected]="lastResult === 'win'"
+            >
+              <div class="shell-bottle">
+                <div class="bottle-cork"></div>
+                <div class="bottle-neck"></div>
+                <div class="bottle-body">
+                  <div class="liquid-fill" [style.background]="getPotionColor()" [style.height.%]="85"></div>
+                </div>
+              </div>
+              <!-- Pop burst particles when collected -->
+              @if (lastResult === 'win') {
+                <div class="pop-burst">
+                  <div class="burst-particle"></div>
+                  <div class="burst-particle"></div>
+                  <div class="burst-particle"></div>
+                  <div class="burst-particle"></div>
+                </div>
+              }
+            </div>
+            <!-- Floating +1 indicator on win (outside potion so it doesn't shrink) -->
+            @if (lastResult === 'win') {
+              <div class="potion-won-indicator">+{{ lastRewardQuantity }} {{ potionLabel }}</div>
+            }
+          }
+
+          <!-- Wizard Hat -->
+          <div
+            class="wizard-hat"
+            [class.lifted]="
+              phase === 'reveal' || phase === 'result' || (potionPosition === hatIndex && lastResult === 'win')
+            "
+          >
+            <div class="hat-cone"></div>
+            <div class="hat-band"></div>
+            <div class="hat-brim"></div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

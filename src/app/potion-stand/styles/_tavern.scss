@@ -1,0 +1,194 @@
+// =============================================================================
+// Tavern — warm medieval treatment for the lobby (merchant / between-levels)
+// screen. Reads the --tavern-* palette defined on .potion-stand-container in
+// _layout.scss; those custom properties cascade into the merchant child
+// components regardless of Angular view encapsulation, so a child only needs
+// to @use this partial and the vars resolve. The palette is theme-aware
+// (warm candlelit wood at night, aged parchment in day) so contrast holds in
+// both modes.
+// =============================================================================
+@use './design-system' as *;
+
+// Remap the generic theme tokens to the tavern palette inside a merchant panel.
+// One include reskins every `var(--text-color)` / `var(--border-color)` /
+// `var(--text-area-color)` / `var(--game-gold)` usage in the component without
+// touching each rule — colours change, layout does not.
+@mixin tavern-tokens {
+  @include potion-status-tokens;
+  --text-color: var(--tavern-ink, #ecdcbb);
+  --text-color-muted: var(--tavern-ink-muted, #b29a73);
+  --border-color: color-mix(in srgb, var(--tavern-frame, #5e4528) 75%, transparent);
+  --text-area-color: color-mix(in srgb, var(--tavern-slot, #18110a) 60%, transparent);
+  --game-gold: var(--tavern-gold, #e6bd5e);
+}
+
+// Carved tavern-sign heading — ornamental display face, candle-gold ink, the
+// deep-cut shadow that reads as a painted wooden signboard.
+@mixin tavern-heading {
+  font-family: 'Uncial Antiqua', Georgia, 'Times New Roman', serif;
+  color: var(--tavern-gold, #e6bd5e);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+// Recessed inventory cell — dark inset slot with a thin gilt keyline.
+@mixin tavern-slot {
+  background: linear-gradient(
+    158deg,
+    color-mix(in srgb, var(--tavern-slot, #18110a) 82%, transparent),
+    var(--tavern-slot, #18110a)
+  );
+  border: 1px solid color-mix(in srgb, var(--tavern-frame, #5e4528) 85%, transparent);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px color-mix(in srgb, var(--tavern-gold, #e6bd5e) 10%, transparent);
+}
+
+// Chiselled bronze button — raised bevel, warm fill, gilt text. Secondary
+// actions (buy a single ware, buy an upgrade).
+@mixin tavern-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-micro;
+  font-family: 'Uncial Antiqua', Georgia, serif;
+  font-weight: $weight-semibold;
+  // Fixed light gilt text — the bronze fill is dark in BOTH themes, so the
+  // theme --tavern-gold (a dark amber in day) was unreadable on it.
+  color: #ecca78;
+  background: linear-gradient(
+    color-mix(in srgb, var(--tavern-frame, #5e4528) 72%, #000),
+    color-mix(in srgb, var(--tavern-frame, #5e4528) 32%, #000)
+  );
+  border: 1px solid color-mix(in srgb, var(--tavern-gold, #e6bd5e) 55%, #000);
+  border-radius: 3px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--tavern-gold, #e6bd5e) 30%, transparent),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.32);
+  cursor: pointer;
+  transition:
+    border-color $animation-standard $easing-standard,
+    box-shadow $animation-standard $easing-standard,
+    filter $animation-standard $easing-standard,
+    transform $animation-standard $easing-standard;
+
+  &:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--tavern-gold, #e6bd5e) 76%, #000);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--tavern-gold, #e6bd5e) 38%, transparent),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.24);
+    filter: brightness(1.14) saturate(1.08);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 1px color-mix(in srgb, var(--tavern-gold, #e6bd5e) 12%, transparent);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+  }
+
+  // Neither this mixin nor tavern-button-gold below previously set a
+  // :focus-visible ring, so every consumer that didn't add its own
+  // supplemental override (unlike merchant-wares' .buy-btn, which pairs this
+  // mixin with @include focus-visible-ring) fell through to the browser's
+  // native blue "auto" outline instead of this project's amber
+  // var(--focus-color) system. Fixing it once here covers every current and
+  // future tavern-button consumer (e.g. .upgrade-btn).
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
+// Gold-leaf primary CTA — bright gilt fill with dark ink, for the headline
+// actions (Open Shop, Buy All). Dark text keeps contrast in both themes.
+@mixin tavern-button-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-micro;
+  font-family: 'Uncial Antiqua', Georgia, serif;
+  font-weight: $weight-bold;
+  // Bright gilt fill is fixed (not the theme --tavern-gold, which is a dark
+  // amber in day mode and left the dark ink unreadable). Gold leaf reads as
+  // gold in both themes; dark ink stays high-contrast on it.
+  color: #241803;
+  background: linear-gradient(#edc65c, #bf8a22);
+  border: 1px solid #8a5e16;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(255, 244, 214, 0.5);
+  // Deepened carved-bevel: the original single top highlight + bottom shadow
+  // read as a flat, generic gradient pill next to the project's other carved
+  // wood/brass surfaces. Adding an inner gilt keyline (the same
+  // inset 0 0 0 1px technique the help/tutorial cards already use) plus a
+  // stronger top-to-bottom shadow spread gives it a struck-metal edge.
+  // Colours are unchanged, only the shadow recipe is stronger.
+  box-shadow:
+    inset 0 1px 0 rgba(255, 246, 220, 0.78),
+    inset 0 0 0 1px rgba(138, 94, 22, 0.55),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition:
+    box-shadow $animation-standard $easing-standard,
+    filter $animation-standard $easing-standard,
+    transform $animation-standard $easing-standard;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 246, 220, 0.86),
+      inset 0 0 0 1px rgba(160, 112, 32, 0.65),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.36),
+      0 4px 9px rgba(0, 0, 0, 0.26);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  // See the matching note in tavern-button above — this mixin had no
+  // :focus-visible ring either, so its consumers (e.g. .open-shop-btn) fell
+  // through to the browser's native blue "auto" outline. The ring sits
+  // outside the gold fill (positive offset), against the surrounding panel
+  // background, so it reads as amber rather than blending into the gilt.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}

@@ -1,0 +1,470 @@
+// =============================================================================
+// Merchant Inventory Component - Your Stock panel during merchant phase
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/tavern' as *;
+
+// =============================================================================
+// Host & Container
+// =============================================================================
+:host {
+  @include tavern-tokens; // remap text/border/area/gold to the tavern palette
+  display: block;
+  height: 100%;
+}
+
+// `.night-mode *` / `.day-mode *` override a plain :host remap per-element;
+// `:host *` re-asserts the tavern palette with the specificity to win.
+:host * {
+  @include tavern-tokens;
+  // Re-cross the encapsulation boundary: the shell's global `.night-mode *` /
+  // `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+  // every element it can see, INCLUDING elements inside this component's own
+  // template — potion-stand's `:host *` override (styles/_variables.scss)
+  // can only reach as far as this component's own host tag
+  // (<app-merchant-inventory>), not inside it. `inherit` re-pulls the
+  // correctly-set value from that host.
+  --focus-color: inherit;
+}
+
+.merchant-inventory-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: $spacing-comfortable;
+  // Override the parent .potions-panel { overflow: hidden } so this column
+  // can host its own scroll area cleanly.
+  min-height: 0;
+}
+
+// Phase 10 — scrollable inner region. Holds .merchant-scroll-content so it
+// can grow past the available height without pushing the Open Shop CTA
+// off-screen. `min-height: 0` is required for the flex child to actually
+// shrink below its content size and let overflow-y: auto kick in.
+// appScrollableFade appends its fade gradient / sticky arrow / spacer as
+// DIRECT children of this element. It deliberately does NOT set
+// `display: flex` on itself (see the chevron-flush fix note below) — the
+// flex+gap layout for the real content lives one level in, on
+// .merchant-scroll-content.
+.merchant-scroll-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  // Phase 11 — keep wheel events contained: if the user reaches the top or
+  // bottom of this scroll area, the scroll does NOT chain up to the
+  // document. Belt-and-suspenders alongside the body-overflow lock.
+  overscroll-behavior: contain;
+
+  // Chromium makes an overflowing scroll region keyboard-focusable on its own
+  // (no author tabindex needed) so it can be scrolled with arrow keys. Without
+  // an explicit ring here that stop rendered the browser's native blue "auto"
+  // outline instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+}
+
+// Chevron-flush fix — this wrapper carries the flex+gap layout that used to
+// live directly on .merchant-scroll-area. appScrollableFade's injected fade
+// gradient and sticky arrow use `position: sticky` plus a negative
+// margin-top (e.g. `margin-top: -32px`) to overlay themselves against the
+// PREVIOUS sibling, assuming ordinary block flow with no space between
+// siblings. When .merchant-scroll-area was itself the flex container with
+// `gap: $spacing-comfortable`, that gap was real reserved space inserted
+// before every flex child, including the directive's own injected elements
+// — it doesn't cancel out a negative margin the way normal block-flow
+// spacing would. The arrow ended up pushed $spacing-comfortable higher than
+// the directive intended, landing mid-panel with dead space below it
+// instead of flush against the visible bottom edge. Moving flex+gap to this
+// inner wrapper leaves .merchant-scroll-area's own children (this wrapper,
+// then the directive's spacer/fade/arrow) as plain block-flow siblings —
+// exactly what the directive's overlay math assumes. Same fix already
+// proven by .wares-scroll-area (merchant-wares.component.scss), which never
+// makes itself a flex container for this reason.
+.merchant-scroll-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-comfortable;
+}
+
+// Pinned action footer. Stays visible on desktop regardless of scroll
+// position, so the primary CTA never gets clipped. flex-shrink: 0 prevents
+// the upgrades list above from squeezing it.
+.merchant-action {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+}
+
+// =============================================================================
+// Panel Title
+// =============================================================================
+.panel-title {
+  @include tavern-heading;
+  font-size: $text-xlarge;
+  padding-bottom: $spacing-tight;
+  border-bottom: 1px solid color-mix(in srgb, var(--tavern-gold) 35%, transparent);
+  flex-shrink: 0;
+  margin: 0;
+}
+
+// =============================================================================
+// Stock Cards - Horizontal grid of potion cards
+// =============================================================================
+.stock-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-tight;
+}
+
+.stock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-tight $spacing-tight $spacing-micro;
+  @include tavern-slot;
+  position: relative;
+  transition: opacity $animation-standard $easing-standard;
+
+  &.empty {
+    opacity: 0.4;
+  }
+
+  // Stock count badge - top left corner
+  .card-count {
+    position: absolute;
+    top: $spacing-micro;
+    left: $spacing-tight;
+    @include text-data;
+    font-size: $text-base;
+    font-weight: $weight-bold;
+    color: var(--tavern-gold);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+    line-height: 1;
+  }
+
+  // Bottle centered - compact spacing
+  app-potion-bottle {
+    margin: $spacing-micro 0;
+  }
+
+  // Name and tier info
+  .card-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    text-align: center;
+
+    .card-name {
+      font-size: $text-small;
+      font-weight: $weight-medium;
+      color: var(--text-color);
+    }
+
+    .card-tier {
+      font-size: 9px;
+      font-weight: $weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-color-muted);
+    }
+  }
+}
+
+// =============================================================================
+// Shop Status - Gold, Reputation, Overhead
+// =============================================================================
+.shop-status {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-tight $spacing-standard;
+  background: var(--text-area-color);
+  @include depth-border-standard;
+  border-radius: $radius-base;
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 2rem;
+
+    &.hint {
+      color: var(--text-color-muted);
+    }
+  }
+
+  .status-label {
+    font-size: $text-small;
+    color: var(--text-color);
+  }
+
+  .status-value {
+    @include text-data;
+    font-size: $text-base;
+    font-weight: $weight-semibold;
+  }
+
+  .gold-value {
+    color: var(--game-gold);
+  }
+
+  .reputation-good {
+    color: var(--game-success);
+  }
+
+  .reputation-neutral {
+    color: var(--text-color);
+  }
+
+  .reputation-bad {
+    color: var(--game-danger);
+  }
+}
+
+// =============================================================================
+// No Stock Warning
+// =============================================================================
+.no-stock-warning {
+  font-size: $text-small;
+  text-align: center;
+  padding: $spacing-tight $spacing-comfortable;
+  margin-top: auto;
+  border-radius: $radius-base;
+  color: var(--text-color-muted);
+  border: 1px solid var(--border-color);
+
+  // Player has gold but chose not to buy — stronger nudge
+  &.afford {
+    color: var(--game-warning);
+    border-color: var(--game-warning);
+    background: var(--status-warning-bg);
+  }
+}
+
+// =============================================================================
+// Open Shop Button
+// =============================================================================
+.open-shop-btn {
+  @include tavern-button-gold;
+  width: 100%;
+  padding: $spacing-tight $spacing-comfortable;
+  font-size: $text-medium;
+  letter-spacing: 0.04em;
+  margin-top: $spacing-tight;
+
+  // Danger variant — opening empty when you can afford potions. Bronze, not
+  // gilt, so the risky action doesn't read as the rewarding primary CTA.
+  &.danger {
+    @include tavern-button;
+    color: var(--game-danger);
+    border-color: color-mix(in srgb, var(--game-danger) 55%, var(--tavern-frame));
+    background: linear-gradient(
+      color-mix(in srgb, var(--game-danger) 14%, var(--tavern-frame)),
+      color-mix(in srgb, #000 24%, var(--tavern-frame))
+    );
+    font-size: $text-small;
+  }
+}
+
+// =============================================================================
+// Recipe Upgrades Section
+// =============================================================================
+.upgrades-section {
+  padding: $spacing-tight 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: $spacing-tight;
+
+  .section-title {
+    @include tavern-heading;
+    font-size: $text-medium;
+    margin-bottom: $spacing-tight;
+  }
+}
+
+.upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+}
+
+.upgrade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-tight $spacing-comfortable;
+  background: var(--text-area-color);
+  border-radius: $radius-small;
+  gap: $spacing-tight;
+
+  &.maxed {
+    opacity: 0.6;
+  }
+}
+
+.upgrade-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+
+  .upgrade-name {
+    font-weight: $weight-semibold;
+    font-size: $text-base;
+  }
+
+  .upgrade-tier {
+    font-size: $text-micro;
+    color: var(--text-color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.upgrade-btn {
+  @include tavern-button;
+  padding: $spacing-micro $spacing-tight;
+  font-size: $text-small;
+  white-space: nowrap;
+
+  .coin {
+    &::after {
+      content: '●';
+      color: var(--game-gold, #f59e0b);
+      margin-left: 2px;
+      font-size: 0.8em;
+    }
+  }
+}
+
+.maxed-badge {
+  font-size: $text-micro;
+  font-weight: $weight-bold;
+  color: var(--game-success, #22c55e);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: $spacing-micro $spacing-tight;
+  background: color-mix(in srgb, var(--game-success, #22c55e) 10%, transparent);
+  border-radius: $radius-small;
+}
+
+@media (max-width: 767px) {
+  :host {
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .merchant-inventory-panel {
+    height: auto;
+  }
+
+  // On mobile the host itself scrolls (Sprint 32 pattern), so the desktop
+  // inner-scroll wrapper should flatten back into normal flow and not
+  // create a nested scroll container.
+  .merchant-scroll-area {
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  // Sprint 32: Solid gold — high prominence call-to-action on mobile
+  .open-shop-btn {
+    position: sticky;
+    bottom: 0;
+    min-height: 48px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    z-index: 5;
+    background: var(--game-gold, #f59e0b);
+    color: var(--bg-color, #1a1a1a);
+    border-top: none;
+
+    &.danger {
+      background: transparent;
+      color: var(--game-danger);
+      border: 1px solid var(--game-danger);
+      font-size: 14px;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+  }
+
+  .stock-cards {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .stock-card {
+    flex: 0 0 auto;
+    width: 56px;
+    padding: 4px 2px;
+
+    .card-count {
+      position: static;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .card-name {
+      font-size: 9px;
+    }
+
+    .card-tier {
+      font-size: 7px;
+    }
+  }
+
+  .shop-status {
+    flex-direction: row;
+    gap: 0;
+    padding: 6px 8px;
+    justify-content: space-between;
+
+    .status-row {
+      flex-direction: column;
+      align-items: center;
+      height: auto;
+      gap: 1px;
+
+      &.hint {
+        font-size: 10px;
+      }
+    }
+
+    .status-label {
+      font-size: 9px;
+      color: var(--text-color-muted);
+    }
+
+    .status-value {
+      font-size: 13px;
+    }
+  }
+
+  .upgrades-section {
+    padding: 8px 0;
+    flex-shrink: 0;
+
+    .section-title {
+      font-size: 11px;
+      padding: 0 4px;
+    }
+  }
+
+  .upgrade-item {
+    padding: 6px 8px;
+  }
+
+  .upgrade-btn {
+    min-height: 44px;
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+}

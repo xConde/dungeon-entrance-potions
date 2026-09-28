@@ -1,0 +1,59 @@
+<div class="merchant-tips-panel">
+  <h2 class="panel-title">Day {{ day }}, Morning</h2>
+  <div class="merchant-tips" appScrollableFade [watchContent]="true">
+    @let c = challenge;
+    <div class="tip-section challenge" [class]="'threat-' + c.threatClass">
+      <div class="challenge-head">
+        <h3 class="tip-title">Today's Challenge</h3>
+        <span class="threat-chip">{{ c.threat }}</span>
+      </div>
+      <p class="challenge-floor">Dungeon Floor {{ c.floor }}</p>
+      <p class="tip-text">{{ c.detail }}</p>
+    </div>
+
+    <div class="tip-section combos">
+      <h3 class="tip-title">Combo Recipes</h3>
+      <p class="combo-intro">Sell an adventurer two matching potions to trigger a bonus.</p>
+      <div class="combo-list">
+        @for (combo of comboCards; track combo.name) {
+          <div class="combo-item">
+            <span class="combo-swatches" aria-hidden="true">
+              <span class="combo-drop" [style.--c]="combo.colors[0]"></span>
+              <span class="combo-drop" [style.--c]="combo.colors[1]"></span>
+            </span>
+            <div class="combo-body">
+              <div class="combo-head">
+                <span class="combo-name">{{ combo.name }}</span>
+                <span class="combo-tags">
+                  @for (tag of combo.tags; track tag.kind) {
+                    <span class="combo-tag" [class]="tag.kind">{{ tag.text }}</span>
+                  }
+                </span>
+              </div>
+              <span class="combo-desc">{{ combo.description }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (customerReviews.length > 0) {
+      <div class="tip-section reviews">
+        <h3 class="tip-title">Recent Reviews</h3>
+        <div class="review-list">
+          @for (review of customerReviews.slice(0, 3); track review.id) {
+            <div class="review-item" [class.survived]="review.survived" [class.died]="!review.survived">
+              <div class="review-header">
+                <span class="review-name">{{ review.adventurerName }}</span>
+                <span class="review-rating"
+                  >{{ '★'.repeat(clampRating(review.rating)) }}{{ '☆'.repeat(5 - clampRating(review.rating)) }}</span
+                >
+              </div>
+              <p class="review-comment">"{{ review.comment }}"</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

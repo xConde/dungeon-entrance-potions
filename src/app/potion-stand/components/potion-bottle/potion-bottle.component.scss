@@ -1,0 +1,130 @@
+// =============================================================================
+// Potion Bottle Component - Reusable bottle visual with size variants
+// =============================================================================
+@use 'sass:map';
+@use '../../styles/design-system' as *;
+
+// =============================================================================
+// Size Configuration Map
+// =============================================================================
+$sizes: (
+  small: (
+    width: 1.25rem,
+    body-height: 1.75rem,
+    cork-width: 0.5rem,
+    cork-height: 0.25rem,
+    neck-width: 0.4rem,
+    neck-height: 0.3rem,
+  ),
+  medium: (
+    width: 2rem,
+    body-height: 2.75rem,
+    cork-width: 0.875rem,
+    cork-height: 0.375rem,
+    neck-width: 0.75rem,
+    neck-height: 0.5rem,
+  ),
+  large: (
+    width: 2.5rem,
+    body-height: 3.5rem,
+    cork-width: 1rem,
+    cork-height: 0.5rem,
+    neck-width: 0.875rem,
+    neck-height: 0.625rem,
+  ),
+);
+
+// =============================================================================
+// Base Bottle Structure
+// =============================================================================
+.potion-bottle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+
+  .bottle-cork {
+    background: #a67c52;
+    border-radius: 2px 2px 0 0;
+    border: 1px solid color-mix(in srgb, #8b6342 80%, transparent);
+    border-bottom: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bottle-neck {
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
+  }
+
+  .bottle-body {
+    width: 100%;
+    border-radius: 20% 20% 45% 45% / 10% 10% 40% 40%;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    @include depth-border-standard;
+    position: relative;
+    overflow: hidden;
+
+    .liquid-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 40% 40% / 0 0 35% 35%;
+      opacity: 0.9;
+    }
+
+    // Glass highlight (vertical shine)
+    &::before {
+      content: '';
+      position: absolute;
+      top: 15%;
+      left: 10%;
+      width: 3px;
+      height: 55%;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      z-index: 1;
+    }
+
+    // Glass shine (top horizontal)
+    &::after {
+      content: '';
+      position: absolute;
+      top: 8%;
+      left: 25%;
+      width: 50%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 1px;
+      z-index: 1;
+    }
+  }
+}
+
+// =============================================================================
+// Size Variants (Generated)
+// =============================================================================
+@each $name, $config in $sizes {
+  .bottle-#{$name} {
+    width: map.get($config, width);
+
+    .bottle-cork {
+      width: map.get($config, cork-width);
+      height: map.get($config, cork-height);
+    }
+
+    .bottle-neck {
+      width: map.get($config, neck-width);
+      height: map.get($config, neck-height);
+    }
+
+    .bottle-body {
+      height: map.get($config, body-height);
+    }
+  }
+}

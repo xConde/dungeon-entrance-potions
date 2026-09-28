@@ -1,0 +1,496 @@
+<div class="potion-shop-panel">
+  <header class="counter-sign">
+    <div>
+      <span class="counter-sign__eyebrow">Last safe stop before the stairs</span>
+      <h2 class="panel-title">The Potion Counter</h2>
+    </div>
+
+    @if (selectedAdventurer) {
+      <div class="serving-badge" aria-label="Customer at the counter">
+        <span class="serving-badge__label">At the counter</span>
+        <span class="customer-name">{{ selectedAdventurer.name }}</span>
+        <span class="customer-budget coin">{{ selectedAdventurer.gold }}</span>
+        <span class="customer-survival" title="Current dungeon outlook">
+          {{ formatSurvival(selectedAdventurer.survivalChance) }} odds
+        </span>
+        <span class="customer-hp-mini" aria-hidden="true">
+          <span
+            class="hp-bar-mini"
+            [style.width.%]="(selectedAdventurer.currentHp / selectedAdventurer.maxHp) * 100"
+          ></span>
+        </span>
+        <span class="potion-slots-mini" aria-label="Potions already carried">
+          @for (potion of selectedAdventurer.potionsConsumed; track $index) {
+            <span class="slot-filled">●</span>
+          }
+          @if (selectedAdventurer.potionsConsumed.length === 0) {
+            <span class="slot-empty">○ ○</span>
+          } @else if (selectedAdventurer.potionsConsumed.length === 1) {
+            <span class="slot-empty">○</span>
+          }
+        </span>
+      </div>
+    } @else {
+      <span class="no-customer-hint">Ring the bell by choosing a customer</span>
+    }
+  </header>
+
+  @if (selectedAdventurer) {
+    <div class="quote-bar" role="radiogroup" aria-label="Price this sale">
+      <div class="quote-bar__label">
+        <span>Set the scales</span>
+        <small>One policy governs every sale</small>
+      </div>
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="priceMode === 'mercy'"
+        [class.active]="priceMode === 'mercy'"
+        class="quote-option quote-option--mercy"
+        (click)="selectPriceMode('mercy')"
+      >
+        <span class="quote-option__mark" aria-hidden="true">✦</span>
+        <span>Mercy</span>
+        <small>Take the loss</small>
+      </button>
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="priceMode === 'fair'"
+        [class.active]="priceMode === 'fair'"
+        class="quote-option"
+        (click)="selectPriceMode('fair')"
+      >
+        <span class="quote-option__mark" aria-hidden="true">⚖</span>
+        <span>Fair</span>
+        <small>Keep the ledger</small>
+      </button>
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="priceMode === 'gouge'"
+        [class.active]="priceMode === 'gouge'"
+        class="quote-option quote-option--gouge"
+        (click)="selectPriceMode('gouge')"
+      >
+        <span class="quote-option__mark" aria-hidden="true">♜</span>
+        <span>Gouge</span>
+        <small>Press their luck</small>
+      </button>
+      <div class="quote-bar__consequence" aria-live="polite">
+        @switch (priceMode) {
+          @case ('mercy') {
+            <strong>−20%</strong>
+            <span>+1 reputation</span>
+          }
+          @case ('gouge') {
+            <strong>+25%</strong>
+            <span>+guilt</span>
+          }
+          @default {
+            <strong>Market rate</strong>
+            <span>No moral modifier</span>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!--
+    Owner redo (2026-08-17): the sighted feedback toast, docked here in-flow
+    instead of floating page-level over the counter (PotionStandComponent
+    still owns the sr-only aria-live announcement and the currentMessage
+    state; this just renders its visible counterpart in a spot that can't
+    cover the Ready Stock cards or their sell controls below). aria-hidden
+    for the same reason as the page-level version: a second live region here
+    would double-announce.
+  -->
+  @if (toastMessage) {
+    <div
+      #counterToast
+      class="counter-toast"
+      [class.message-info]="toastMessage.type === 'info'"
+      [class.message-success]="toastMessage.type === 'success'"
+      [class.message-warning]="toastMessage.type === 'warning'"
+      [class.message-error]="toastMessage.type === 'error'"
+      aria-hidden="true"
+    >
+      <span class="counter-toast__icon" [innerHTML]="toastIconSvg"></span>
+      <span class="counter-toast__text">{{ toastMessage.text }}</span>
+    </div>
+  }
+
+  @let panelStatus = getPanelStatusMessage();
+  @if (panelStatus) {
+    <p class="panel-status-message" role="status" aria-live="polite">
+      <span aria-hidden="true">☞</span>
+      {{ panelStatus }}
+    </p>
+  }
+
+  <div class="shelf-heading">
+    <span class="shelf-heading__title">Ready stock</span>
+    <span class="shelf-heading__note">
+      @if (selectedAdventurer) {
+        Choose what {{ selectedAdventurer.name }} carries below
+      } @else {
+        Bottled at the dungeon's edge
+      }
+    </span>
+  </div>
+
+  <div class="potion-grid">
+    @for (potion of potions; track potion.id) {
+      <div
+        class="potion-card"
+        role="group"
+        [attr.aria-label]="potion.name"
+        appLongPress
+        (longPress)="showPotionTooltip(potion)"
+        [class.out-of-stock]="getStock(potion.id) === 0"
+        [class.in-stock]="(inventory.get(potion.id) ?? 0) > 0"
+        [class.diluted]="potion.isDiluted"
+        [class.recommended]="selectedAdventurer && isRecommended(potion)"
+        [class.dilution-pending]="isInlineDilutionPending(potion)"
+        [class.unaffordable]="selectedAdventurer && !canAfford(potion)"
+        [style.--potion-color]="potion.color"
+        [title]="potion.name"
+      >
+        <!--
+          Card-system redesign (2026-08-17): one shared internal grid every
+          variant balances against. .card-content is the flexible middle —
+          flex: 1 fills whatever space .card-actions (bottom-anchored,
+          flex-shrink: 0) doesn't need, and justify-content: space-evenly
+          spreads that slack around the bottle/info/ticket group instead of
+          dumping it as one dead band right above the actions row. The
+          stock badge and the recommended badge both live inside
+          .potion-bottle now (not fixed to the card's own corners) so they
+          travel with the art zone regardless of how much that group is
+          pushed down by a taller or shorter neighbor.
+        -->
+        <div class="card-content">
+          <div class="potion-bottle" aria-hidden="true">
+            <div
+              class="stock-badge"
+              [class.low-stock]="getStock(potion.id) < 3"
+              [attr.aria-label]="getStock(potion.id) + ' in stock'"
+            >
+              <span aria-hidden="true">×{{ getStock(potion.id) }}</span>
+            </div>
+
+            @if (selectedAdventurer && isRecommended(potion)) {
+              <div class="recommended-badge" [attr.aria-label]="'Recommended: ' + getRecommendedReason(potion)">
+                <span class="recommended-label">Best bet</span>
+                <span class="recommended-reason">{{ getRecommendedReason(potion) }}</span>
+              </div>
+            }
+
+            <div class="bottle-cork"></div>
+            <div class="bottle-neck"></div>
+            <div class="bottle-body">
+              <div
+                class="liquid-fill"
+                [style.background]="potion.color"
+                [style.height.%]="potion.isDiluted ? 56 : 85"
+              ></div>
+              <span class="bottle-glint"></span>
+              <span class="bottle-bubble bottle-bubble--one"></span>
+              <span class="bottle-bubble bottle-bubble--two"></span>
+            </div>
+            <span class="bottle-seal">{{ getShortName(potion.name).charAt(0) }}</span>
+          </div>
+
+          <div class="potion-info">
+            <div class="potion-name">
+              <span>{{ getShortName(potion.name) }}</span>
+              <small>{{ potion.isDiluted ? 'cut batch' : getPotionTier(potion).toLowerCase() }}</small>
+            </div>
+
+            @if (potion.isDiluted) {
+              <!--
+                Owner redo (2026-08-17): a watered bottle is a ledger fact,
+                not an emergency — was a red-bordered card, a red DIRE
+                ticket, and a diagonal alert ribbon at once. Now ONE quiet
+                in-world marker: a rubber-stamped note across the label,
+                muted ink only, no fill, no ribbon, no red card border.
+              -->
+              <span class="watered-stamp">Watered</span>
+            }
+
+            <div class="potion-stats" aria-label="Potion effects">
+              @if (potion.effects.healing) {
+                <span class="potion-stats__value">{{ getDisplayEffectValue(potion, potion.effects.healing) }} HP</span>
+              }
+              @if (potion.effects.strengthBoost) {
+                <span class="potion-stats__value">
+                  {{ getDisplayEffectValue(potion, potion.effects.strengthBoost) }} STR
+                </span>
+              }
+              @if (potion.effects.defenseBoost) {
+                <span class="potion-stats__value">
+                  {{ getDisplayEffectValue(potion, potion.effects.defenseBoost) }} DEF
+                </span>
+              }
+              @if (potion.effects.speedBoost) {
+                <span class="potion-stats__value">
+                  {{ getDisplayEffectValue(potion, potion.effects.speedBoost) }} SPD
+                </span>
+              }
+              @if (potion.effects.luckBoost) {
+                <span class="potion-stats__value">
+                  {{ getDisplayEffectValue(potion, potion.effects.luckBoost) }} LUCK
+                </span>
+              }
+              <span class="potion-stats__note">{{ potion.isDiluted ? '¼ effect' : 'full strength' }}</span>
+            </div>
+          </div>
+
+          @if (getForecast(potion); as forecast) {
+            <div
+              class="loadout-forecast"
+              [class]="'loadout-forecast ' + forecast.risk"
+              [attr.aria-label]="
+                'Dungeon outlook changes from ' +
+                formatSurvival(forecast.currentSurvival) +
+                ' to ' +
+                formatSurvival(forecast.projectedSurvival) +
+                '. ' +
+                getForecastLabel(forecast) +
+                '. ' +
+                forecast.budgetAfterSale +
+                ' gold left.' +
+                (forecast.comboName
+                  ? ' ' + forecast.comboName + ' adds ' + formatSurvival(forecast.comboSurvivalBonus) + ' survival.'
+                  : '')
+              "
+            >
+              <span class="forecast-label">{{ getForecastLabel(forecast) }}</span>
+              <span class="forecast-change">
+                {{ formatSurvival(forecast.currentSurvival) }}
+                <span aria-hidden="true">›</span>
+                <strong>{{ formatSurvival(forecast.projectedSurvival) }}</strong>
+              </span>
+              <span class="forecast-budget coin" [class.negative]="forecast.budgetAfterSale < 0">
+                {{ forecast.budgetAfterSale }} gold left
+              </span>
+              @if (forecast.comboName) {
+                <span
+                  class="forecast-combo"
+                  [title]="forecast.comboName + (forecast.comboDescription ? ': ' + forecast.comboDescription : '')"
+                >
+                  +{{ formatSurvival(forecast.comboSurvivalBonus) }} survive
+                </span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="card-actions">
+          <button
+            class="sell-btn"
+            (click)="onSell(potion)"
+            [disabled]="isSellDisabled(potion)"
+            [class.no-stock]="getStock(potion.id) === 0"
+            [attr.aria-label]="
+              'Sell ' +
+              potion.name +
+              (potion.effects.healing
+                ? ', heals ' + getDisplayEffectValue(potion, potion.effects.healing) + ' HP'
+                : '') +
+              (potion.effects.strengthBoost
+                ? ', +' + getDisplayEffectValue(potion, potion.effects.strengthBoost) + ' STR'
+                : '') +
+              (potion.effects.defenseBoost
+                ? ', +' + getDisplayEffectValue(potion, potion.effects.defenseBoost) + ' DEF'
+                : '') +
+              ', costs ' +
+              calculatePrice(potion, selectedAdventurer) +
+              ' gold'
+            "
+            [attr.title]="getSellDisabledReason(potion)"
+          >
+            <span>Hand over bottle</span>
+            @if (isPriceModified(potion, selectedAdventurer)) {
+              <strong
+                class="coin price-value"
+                [class]="getPriceModifierClass(selectedAdventurer)"
+                [title]="getPriceTooltip(potion, selectedAdventurer)"
+              >
+                {{ calculatePrice(potion, selectedAdventurer) }}
+              </strong>
+            } @else {
+              <strong class="coin price-value">{{ calculatePrice(potion, selectedAdventurer) }}</strong>
+            }
+          </button>
+
+          @if ((!potion.isDiluted && getStock(potion.id) > 0) || canRestock(potion)) {
+            <div class="card-actions__secondary">
+              @if (!potion.isDiluted && getStock(potion.id) > 0) {
+                @if (isInlineDilutionPending(potion)) {
+                  <div
+                    class="inline-dilution-confirm"
+                    role="group"
+                    aria-live="polite"
+                    [attr.data-inline-dilution-confirm]="potion.id"
+                    [attr.aria-label]="
+                      'Confirm dilution: one bottle becomes two watered bottles at quarter strength and adds ' +
+                      dilutionGuilt +
+                      ' guilt'
+                    "
+                  >
+                    <button
+                      type="button"
+                      class="inline-dilution-confirm__commit"
+                      (click)="confirmInlineDilution(potion)"
+                      [attr.title]="
+                        'Water 1 bottle into 2 at ' +
+                        getDilutionEffectSummary(potion) +
+                        ' each, quarter strength, and +' +
+                        dilutionGuilt +
+                        ' guilt'
+                      "
+                      [attr.aria-label]="
+                        'Water one bottle into two watered bottles at ' +
+                        getDilutionEffectSummary(potion) +
+                        ' each, quarter strength, and adds ' +
+                        dilutionGuilt +
+                        ' guilt'
+                      "
+                    >
+                      <span class="inline-dilution-confirm__verb">Water</span>
+                      <span class="inline-dilution-confirm__yield" aria-hidden="true">
+                        <span>1</span><span class="inline-dilution-confirm__arrow">→</span><span>2</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-dilution-confirm__cancel"
+                      aria-label="Keep this bottle undiluted"
+                      (click)="cancelInlineDilutionConfirmation()"
+                    >
+                      Keep
+                    </button>
+                  </div>
+                } @else {
+                  <button
+                    class="dilute-btn"
+                    (click)="onDilute(potion)"
+                    [disabled]="isDiluteDisabled(potion)"
+                    [attr.title]="getDiluteDisabledReason(potion) ?? 'Take this bottle to the stillroom'"
+                    [attr.aria-label]="'Take ' + potion.name + ' to the dilution stillroom'"
+                  >
+                    <span class="dilute-label">Dilute bottle</span>
+                  </button>
+                }
+              }
+              @if (canRestock(potion)) {
+                <button
+                  class="restock-btn"
+                  (click)="onRestock(potion)"
+                  [disabled]="isRestockDisabled(potion)"
+                  [attr.title]="getRestockDisabledReason(potion) ?? 'Buy 2 more for ' + getEmergencyPrice(potion) + 'g'"
+                  [attr.aria-label]="'Emergency restock ' + potion.name + ' for ' + getEmergencyPrice(potion) + ' gold'"
+                >
+                  <span class="restock-label">Restock +2</span>
+                  <span class="restock-cost coin">{{ getEmergencyPrice(potion) }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (dilutionPotion; as potion) {
+    <div
+      class="stillroom-scrim"
+      (click)="cancelDilutionBench()"
+      (keydown.escape)="cancelDilutionBench(); $event.preventDefault(); $event.stopPropagation()"
+    >
+      <section
+        class="dilution-stillroom"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stillroom-title"
+        aria-describedby="stillroom-warning"
+        [appFocusTrap]="true"
+        (click)="$event.stopPropagation()"
+      >
+        <button class="stillroom-close" type="button" aria-label="Close stillroom" (click)="cancelDilutionBench()">
+          ×
+        </button>
+
+        <div class="stillroom-heading">
+          <span class="stillroom-heading__eyebrow">Behind the false shelf</span>
+          <h3 id="stillroom-title">The Stillroom</h3>
+          <p>This is where an honest bottle becomes two dangerous promises.</p>
+        </div>
+
+        <div class="batch-ritual" aria-hidden="true">
+          <div class="ritual-bottle ritual-bottle--full" [style.--ritual-color]="potion.color">
+            <span></span>
+          </div>
+          <div class="ritual-pour">
+            <span class="ritual-drop"></span>
+            <strong>+</strong>
+            <span class="ritual-water">water</span>
+          </div>
+          <div class="ritual-result">
+            <div class="ritual-bottle ritual-bottle--cut" [style.--ritual-color]="potion.color"><span></span></div>
+            <div class="ritual-bottle ritual-bottle--cut" [style.--ritual-color]="potion.color"><span></span></div>
+          </div>
+        </div>
+
+        <div class="batch-ledger">
+          <div>
+            <span>Sacrifice</span>
+            <strong>1 {{ getShortName(potion.name) }}</strong>
+            <small>{{ getStock(potion.id) }} → {{ getStock(potion.id) - 1 }} honest bottles</small>
+          </div>
+          <div>
+            <span>Bottle</span>
+            <strong>2 watered</strong>
+            <small>{{ getDilutionEffectSummary(potion) }} each</small>
+          </div>
+          <div>
+            <span>Resale</span>
+            <strong>{{ dilutedBatchValuePercent }}% total</strong>
+            <small>More customers, less value</small>
+          </div>
+          <div class="batch-ledger__danger">
+            <span>Conscience</span>
+            <strong>+{{ dilutionGuilt }} guilt</strong>
+            <small>Experienced customers refuse it</small>
+          </div>
+        </div>
+
+        <p id="stillroom-warning" class="stillroom-warning">
+          Watered potions carry a severe survival penalty. If the adventurer dies, the dungeon remembers who filled the
+          bottle.
+        </p>
+
+        <div class="stillroom-actions">
+          <button class="stillroom-cancel" type="button" (click)="cancelDilutionBench()">Keep it honest</button>
+          <button class="stillroom-confirm" type="button" (click)="confirmDilution()">
+            Water the batch
+            <small>1 bottle becomes 2</small>
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (tooltipPotion) {
+    <div class="potion-tooltip" (click)="dismissTooltip()">
+      <div class="tooltip-content">
+        <strong>{{ tooltipPotion.name }}</strong>
+        <p>{{ tooltipPotion.description }}</p>
+        <p class="tooltip-price">Base: {{ tooltipPotion.basePrice }}g</p>
+        @if (tooltipPotion.isDiluted) {
+          <p class="tooltip-warning">Diluted: quarter-strength effects and a severe survival penalty</p>
+        }
+      </div>
+    </div>
+  }
+</div>

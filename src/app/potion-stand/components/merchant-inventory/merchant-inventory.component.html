@@ -1,0 +1,133 @@
+<div class="merchant-inventory-panel">
+  <h2 class="panel-title">Your Stock</h2>
+
+  <!--
+    Phase 10 — scrollable inner region with appScrollableFade so the panel
+    surfaces overflow the same way the right (dungeon) panel does. The Open
+    Shop button stays OUTSIDE this scroll area as a pinned footer so the
+    primary action is always visible regardless of scroll position. Pre-fix
+    the button was the last child of the parent and got clipped by
+    .potions-panel { overflow: hidden } on desktop.
+
+    The flex+gap layout for the content below lives on the inner
+    .merchant-scroll-content wrapper, not on .merchant-scroll-area itself —
+    see that class's comment in the .scss for why (keeps the directive's
+    injected fade/arrow flush at the true bottom edge).
+  -->
+  <div class="merchant-scroll-area" appScrollableFade [watchContent]="true">
+    <div class="merchant-scroll-content">
+      <!-- Potion Cards Grid -->
+      <div class="stock-cards">
+        @for (potion of potions; track potion.id) {
+          <div class="stock-card" [class.empty]="getStock(potion.id) === 0">
+            <div class="card-count">{{ getStock(potion.id) }}</div>
+            <app-potion-bottle [color]="potion.color" size="small" />
+            <div class="card-info">
+              <span class="card-name">{{ potion.name }}</span>
+              <span class="card-tier">{{ getTierName(potion.upgradeKey) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Shop Status -->
+      <div class="shop-status">
+        <div class="status-row">
+          <span class="status-label">Gold</span>
+          <span class="status-value gold-value coin">{{ gold }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Reputation</span>
+          <span class="status-value" [class]="getReputationClass()">{{ reputation }}</span>
+        </div>
+        <div class="status-row hint">
+          <span class="status-label">Daily overhead</span>
+          <span class="status-value coin">{{ dailyOverhead }}</span>
+        </div>
+      </div>
+
+      <!-- Recipe Upgrades (Permanent) -->
+      <div class="upgrades-section">
+        <h3 class="section-title">Recipe Upgrades</h3>
+        <div class="upgrade-list">
+          <div class="upgrade-item" [class.maxed]="isMaxTier('healing')">
+            <div class="upgrade-info">
+              <span class="upgrade-name">Healing</span>
+              <span class="upgrade-tier">{{ getCurrentTierName('healing') }}</span>
+            </div>
+            @if (isMaxTier('healing')) {
+              <span class="maxed-badge">MAX</span>
+            } @else {
+              <button
+                class="upgrade-btn"
+                (click)="onBuyUpgrade('healing')"
+                [disabled]="!canBuyUpgrade('healing')"
+                [title]="getNextTierName('healing') + ' (' + getNextTierMultiplier('healing') + 'x effects)'"
+              >
+                {{ getNextTierName('healing') }} <span class="coin">{{ getNextUpgradeCost('healing') }}</span>
+              </button>
+            }
+          </div>
+          <div class="upgrade-item" [class.maxed]="isMaxTier('strength')">
+            <div class="upgrade-info">
+              <span class="upgrade-name">Strength</span>
+              <span class="upgrade-tier">{{ getCurrentTierName('strength') }}</span>
+            </div>
+            @if (isMaxTier('strength')) {
+              <span class="maxed-badge">MAX</span>
+            } @else {
+              <button
+                class="upgrade-btn"
+                (click)="onBuyUpgrade('strength')"
+                [disabled]="!canBuyUpgrade('strength')"
+                [title]="getNextTierName('strength') + ' (' + getNextTierMultiplier('strength') + 'x effects)'"
+              >
+                {{ getNextTierName('strength') }} <span class="coin">{{ getNextUpgradeCost('strength') }}</span>
+              </button>
+            }
+          </div>
+          <div class="upgrade-item" [class.maxed]="isMaxTier('defense')">
+            <div class="upgrade-info">
+              <span class="upgrade-name">Protection</span>
+              <span class="upgrade-tier">{{ getCurrentTierName('defense') }}</span>
+            </div>
+            @if (isMaxTier('defense')) {
+              <span class="maxed-badge">MAX</span>
+            } @else {
+              <button
+                class="upgrade-btn"
+                (click)="onBuyUpgrade('defense')"
+                [disabled]="!canBuyUpgrade('defense')"
+                [title]="getNextTierName('defense') + ' (' + getNextTierMultiplier('defense') + 'x effects)'"
+              >
+                {{ getNextTierName('defense') }} <span class="coin">{{ getNextUpgradeCost('defense') }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Pinned action footer. Lives OUTSIDE .merchant-scroll-area so the primary
+    "Open Shop" CTA is always reachable on desktop, regardless of how far
+    the upgrades list scrolls. Mobile behaviour preserved by the existing
+    sticky bottom rule on .open-shop-btn inside the @media (max-width: 767px) block.
+  -->
+  <div class="merchant-action">
+    @if (hasStock()) {
+      <button class="open-shop-btn" (click)="onOpenShop()" aria-label="Open shop for the day">Open Shop</button>
+    } @else if (canAffordPotions) {
+      <div class="no-stock-warning afford">
+        You have gold but no potions. Adventurers will enter the dungeon unprepared. Buy from the merchant first.
+      </div>
+      <button class="open-shop-btn danger" (click)="onOpenShop()" aria-label="Open shop without potions">
+        Open Shop Empty
+      </button>
+    } @else {
+      <div class="no-stock-warning">No potions and no gold. Good luck.</div>
+      <button class="open-shop-btn" (click)="onOpenShop()" aria-label="Open shop for the day">Open Shop</button>
+    }
+  </div>
+</div>

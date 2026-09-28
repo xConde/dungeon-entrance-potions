@@ -1,0 +1,99 @@
+// =============================================================================
+// Potion Stand - Design System Compliant Styles
+// Direction: Warmth & Approachability with RPG Character
+// Following strict 4px grid, borders-only depth, monospace data
+// =============================================================================
+
+@use './styles/design-system' as *;
+@use './styles/variables' as *;
+@use './styles/animations' as *;
+@use './styles/modals' as *;
+@use './styles/layout' as *;
+@use './styles/header' as *;
+@use './styles/queue' as *;
+@use './styles/dungeon' as *;
+@use './styles/shell-game' as *;
+@use './styles/responsive' as *;
+
+// Host fills the entire main-box flex slot. Pre-fix the host had no
+// explicit height, so .potion-stand-container's `height: 100%` resolved
+// to "100% of indeterminate" (auto). The previous min-height: calc(100vh
+// - 85px) on the container masked this by forcing a floor; after that
+// floor was dropped (to stop bottom clipping with the route-wrapper
+// scroll lock), playing-phase content shrunk the container to fit.
+:host {
+  display: block;
+  height: 100%;
+  // Fixed-positioning containing block so the game's position:fixed overlays
+  // (floating-death, day-summary + game-over modals) stay inside the project-detail
+  // embed instead of anchoring to the viewport and bleeding onto the page on WebKit
+  // (iOS Safari / iOS Chrome). A transform creates the CB in every engine;
+  // contain:layout would only work in Chromium. No canvas here, so this is safe.
+  transform: translateZ(0);
+}
+
+// Sprint 4: Containing block for absolute-positioned modal overlays (mobile only)
+// On mobile, modals use position:absolute instead of fixed (due to ancestor overflow:hidden).
+@media (max-width: 767px) {
+  :host {
+    position: relative;
+  }
+}
+
+// ::selection theming for this project lives in the shell's styles.scss
+// (element-scoped to the `app-potion-stand` host tag), NOT here — see the
+// comment there for why: `:host ::selection` cannot reach text rendered by
+// child components (shop, header, modals) under Angular's emulated
+// encapsulation.
+
+// Phase 7b — cross-tab save conflict banner. Mirrors the pipeline-panic
+// save-warning banner pattern: assertive role=alert, top-of-page placement,
+// inline action button to reload.
+.cross-tab-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-comfortable;
+  padding: $spacing-comfortable $spacing-major;
+  background: var(--game-warning, #ff9100);
+  color: #1a1410;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: slideDown 200ms ease-out;
+  }
+
+  &__text {
+    font-size: $text-base;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  &__action {
+    background: #1a1410;
+    color: var(--game-warning, #ff9100);
+    border: none;
+    padding: $spacing-tight $spacing-comfortable;
+    border-radius: $radius-base;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 88px;
+
+    &:hover,
+    &:focus-visible {
+      background: #000;
+    }
+  }
+}
+
+// High-contrast mode overrides
+:host-context(.high-contrast) {
+  --game-success: #00c853;
+  --game-warning: #ff9100;
+  --game-danger: #ff1744;
+  --game-gold: #ffd600;
+  --text-color-muted: rgba(255, 255, 255, 0.85);
+  --hover-color: rgba(255, 255, 255, 0.15);
+}

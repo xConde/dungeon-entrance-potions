@@ -1,0 +1,312 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Animations - Simple, purposeful, 150-250ms
+// Removed: pulses, shakes, bounces, glows, complex keyframes
+// =============================================================================
+
+// Floating Death Skull - Essential feedback animation
+.floating-death {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  animation: floatUp 2s $easing-standard forwards;
+  text-align: center;
+
+  .death-icon {
+    font-size: 6rem;
+    color: var(--game-danger);
+    // Removed text-shadow glow - borders-only depth strategy
+  }
+
+  .death-words {
+    font-size: $text-base;
+    color: var(--game-danger);
+    font-style: italic;
+    opacity: 0.8;
+    margin-top: $spacing-tight;
+  }
+}
+
+// Message Toast — visible counterpart to the sr-only currentMessage
+// announcement in potion-stand.component.html. Bottom-anchored (fixed,
+// contained by :host's transform regardless of DOM nesting level — see the
+// template comment on the .message-bar block for why it lives outside
+// .potion-stand-container) so it never collides with the top-anchored
+// .event-banner — random-event effects call showMessage() in the same tick
+// that sets currentEvent, so both can be visible together. Matches
+// .event-banner's material (solid panel, strong colored border), with the
+// border keyed to message severity via --message-accent.
+// Entrance + exit are one keyframe timed to TIMING.MESSAGE_AUTO_HIDE_MS so
+// the fade-out lands right as the JS timer clears currentMessage and the
+// @if unmounts the element (same floatUp/DEATH_MODAL_MS pairing below).
+// Like .event-banner, the template keeps one DOM node across replacement
+// messages (@if, not a keyed @for) rather than recreating it per message —
+// recreating on every text swap trips Angular's NG0956 advisory for a
+// cosmetic-only replay. Instead, PotionStandComponent.restartMessageToastAnimation()
+// force-reflows this element whenever currentMessage is replaced by a new
+// message while already visible, so this animation restarts on its own
+// fresh clock without ever recreating the node.
+.message-bar {
+  position: fixed;
+  bottom: max(#{$spacing-comfortable}, env(safe-area-inset-bottom, #{$spacing-comfortable}));
+  left: 50%;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+  max-width: min(28rem, calc(100vw - #{$spacing-comfortable * 2}));
+  padding: $spacing-tight $spacing-comfortable;
+  --message-accent: var(--game-info);
+  background: var(--text-area-color);
+  @include depth-border-strong;
+  border-color: var(--message-accent);
+  border-radius: $radius-medium;
+  color: var(--text-color);
+  font-size: $text-small;
+  opacity: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+  // COUPLING: this 5000ms MUST match TIMING.MESSAGE_AUTO_HIDE_MS in
+  // config/game-config.ts (currently both 5000ms). SCSS can't read a TS
+  // constant without build plumbing, so this is the same duration expressed
+  // twice — the JS timer clears currentMessage right as this finishes (same
+  // pairing .floating-death uses: floatUp 2s / DEATH_MODAL_MS: 2000). If
+  // they drift, the toast either holds fully faded-out for a stretch before
+  // Angular removes it, or gets yanked away mid-animation. Change both
+  // together.
+  animation: messageToast 5000ms $easing-standard forwards;
+
+  &.message-success {
+    --message-accent: var(--game-success);
+  }
+
+  &.message-warning {
+    --message-accent: var(--game-warning);
+  }
+
+  &.message-error {
+    --message-accent: var(--game-danger);
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--message-accent);
+    font-size: $text-large;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+// Desktop/tablet (>=768px) only: the game-grid is a fixed, non-scrolling
+// layout here (mobile's own .game-grid gets overflow-y: auto plus a 64px
+// padding-bottom reservation — styles/_responsive.scss — so this doesn't
+// apply below 768px, and the mobile .message-bar bottom override there takes
+// over instead). At this width the Stock Rescue strip (.shell-game-section,
+// styles/_layout.scss) is pinned to the very bottom of the same column the
+// toast centers over, so the toast's default close-to-edge offset lands
+// directly on top of it. Raising the offset clears it regardless of the
+// toast's own height, since a fixed `bottom` only moves the box's top edge
+// upward as content wraps — the bottom edge (and thus this clearance) never
+// changes.
+// COUPLING: 100px mirrors .shell-game-section's min-height (styles/_layout.scss).
+// If that strip's height changes, raise this offset too.
+@media (min-width: 768px) {
+  .message-bar--clear-shell-game {
+    bottom: calc(100px + #{$spacing-generous});
+  }
+}
+
+// =============================================================================
+// Keyframe Animations - Simplified, purposeful
+// =============================================================================
+
+@keyframes messageToast {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateX(-50%) translateY($spacing-comfortable);
+  }
+  10%,
+  88% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY($spacing-tight);
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate(-50%, -70%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.8);
+  }
+}
+
+@keyframes sale-sparkle {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes coin-float {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+// Event Banner - Clean notification banner
+.event-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  // Clamp to viewport so the banner can never extend past the edges, even when
+  // its filter-induced containing block shifts under notches or browser chrome.
+  max-width: min(28rem, calc(100vw - #{$spacing-comfortable * 2}));
+  padding: $spacing-standard $spacing-comfortable;
+  background: var(--text-area-color);
+  @include depth-border-strong;
+  border-color: var(--game-warning);
+  border-top: none;
+  border-radius: 0 0 $radius-medium $radius-medium;
+  animation: slideDown $animation-slow $easing-standard;
+
+  .event-content {
+    display: flex;
+    align-items: center;
+    gap: $spacing-standard;
+    min-width: 0; // Allow flex children to shrink below intrinsic width
+  }
+
+  .event-icon {
+    font-size: $text-large;
+    flex-shrink: 0;
+  }
+
+  .event-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .event-title {
+    font-size: $text-medium;
+    font-weight: $weight-semibold;
+    color: var(--text-color);
+    margin-bottom: $spacing-micro;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .event-description {
+    font-size: $text-small;
+    color: var(--text-color-muted);
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes purchaseFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes purchasePopUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes logAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-$spacing-tight);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// =============================================================================
+// Additional Keyframe Animations
+// =============================================================================
+
+@keyframes slideInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,523 @@
+// =============================================================================
+// Dungeon Activity Component - Dungeon log and adventurer status panel
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/cave' as *;
+
+:host {
+  @include cave-tokens; // warm the panel into the torchlit cave palette
+
+  display: block;
+  height: 100%;
+}
+
+// The global `.night-mode * { --text-area-color … }` (universal selector) sets
+// the theme tokens on EVERY element directly, which beats a plain :host remap
+// (that only feeds inheritance) and left inset surfaces — the log niche, cards,
+// bars — cold grey inside the warm panels. Re-asserting via `:host *` gives the
+// cave palette the specificity (0,2,0 > 0,1,0) to actually win per-element.
+:host * {
+  @include cave-tokens;
+  // Re-cross the encapsulation boundary: the shell's global `.night-mode *` /
+  // `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+  // every element it can see, INCLUDING elements inside this component's own
+  // template — potion-stand's `:host *` override (styles/_variables.scss)
+  // can only reach as far as this component's own host tag
+  // (<app-dungeon-activity>), not inside it. `inherit` re-pulls the
+  // correctly-set value from that host.
+  --focus-color: inherit;
+}
+
+.dungeon-activity-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: $spacing-standard;
+  position: relative;
+
+  // Fog gradient at top. Opacity is driven by --fog-opacity (set inline from currentFloor).
+  // Color is derived from --text-color so it adapts to both day and night themes:
+  // in day-mode (dark text on cream) the fog reads as a soft warm shadow;
+  // in night-mode (light text on dark) it reads as a deeper darkness.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--text-color) calc(var(--fog-opacity, 0.3) * 100%), transparent),
+      transparent
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+// Visually hidden but read aloud by screen readers.
+// Only high-signal dungeon events (death / victory / boss) are routed here.
+.sr-only-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panel-title {
+  @include cave-heading;
+  font-size: $text-large;
+  margin-bottom: 0;
+  padding-bottom: $spacing-tight;
+  border-bottom: 1px solid color-mix(in srgb, var(--cave-ember) 30%, transparent);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .floor-badge {
+    @include text-data;
+    font-size: $text-micro;
+    padding: $spacing-micro $spacing-tight;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: $radius-small;
+    font-weight: $weight-semibold;
+    color: var(--text-color);
+  }
+}
+
+.dungeon-adventurers {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+  max-height: 8rem;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: $spacing-tight;
+  padding-bottom: 0; // Allow sticky fade to reach bottom edge
+  background: var(--text-area-color);
+  @include depth-border-standard;
+  border-radius: $radius-base;
+
+  // Chromium makes an overflowing scroll region keyboard-focusable on its own
+  // (no author tabindex needed) so it can be scrolled with arrow keys. Without
+  // an explicit ring here that stop rendered the browser's native blue "auto"
+  // outline instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+
+  .dungeon-adventurer {
+    display: flex;
+    align-items: center;
+    gap: $spacing-tight;
+    font-size: $text-small;
+
+    .name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status {
+      @include text-data;
+      font-size: $text-micro;
+      text-transform: uppercase;
+      padding: $spacing-micro $spacing-tight;
+      background: color-mix(in srgb, var(--text-color) 8%, transparent);
+      border-radius: $radius-small;
+      flex-shrink: 0;
+
+      &.entering {
+        color: var(--game-info);
+      }
+
+      &.exploring {
+        color: var(--game-warning);
+      }
+
+      &.fighting {
+        color: var(--game-danger);
+      }
+
+      &.fleeing {
+        color: var(--game-warning);
+        font-style: italic;
+      }
+
+      &.looting {
+        color: var(--game-gold, #f0a500);
+      }
+
+      &.victorious {
+        color: var(--game-success);
+      }
+    }
+
+    .survival-indicator {
+      display: flex;
+      align-items: center;
+      gap: $spacing-micro;
+      flex-shrink: 0;
+
+      .survival-bar {
+        width: 2rem;
+        height: $spacing-tight;
+        background: var(--game-success);
+        border-radius: $radius-small;
+        @include depth-border-subtle;
+
+        &.warning {
+          background: var(--game-warning);
+        }
+
+        &.danger {
+          background: var(--game-danger);
+        }
+      }
+
+      .survival-percent {
+        @include text-data;
+        font-size: $text-micro;
+        min-width: 2rem;
+        text-align: right;
+      }
+    }
+
+    // HP indicator shown during combat
+    .hp-indicator {
+      display: flex;
+      align-items: center;
+      gap: $spacing-micro;
+      flex-shrink: 0;
+      position: relative;
+      width: 4rem;
+      height: $spacing-tight;
+      background: color-mix(in srgb, var(--text-color) 15%, transparent);
+      border-radius: $radius-small;
+      overflow: hidden;
+
+      .hp-bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: var(--game-success);
+        border-radius: $radius-small;
+        transition:
+          width 150ms ease-out,
+          background-color 150ms ease-out;
+
+        &.warning {
+          background: var(--game-warning);
+        }
+
+        &.danger {
+          background: var(--game-danger);
+        }
+      }
+
+      .hp-text {
+        @include text-data;
+        font-size: 9px;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        text-align: center;
+        color: var(--text-color);
+        text-shadow: 0 0 2px var(--bg-color);
+      }
+    }
+  }
+}
+
+// Mobile: dungeon panel takes full viewport height
+@media (max-width: 767px) {
+  :host {
+    width: 100%;
+    height: 100%; // Fill parent so dungeon-log height chain resolves correctly
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Sprint 9: Consistent panel title styling across all components on mobile
+  .panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+
+  .dungeon-activity-panel {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 60px; // Sprint 36: Collapse gracefully when empty — no huge blank area
+
+    // Sprint 25: Reduce fog gradient height on mobile
+    &::before {
+      height: 24px;
+    }
+  }
+
+  .dungeon-log {
+    overflow-y: auto; // Required for appScrollableFade directive to detect scroll position
+    overflow-x: hidden;
+    flex: 1; // Grow to fill remaining space after panel-title + adventurers
+    min-height: 0; // Allow flex shrinking below content height
+    // No max-height — bounded by flex parent chain:
+    // .dungeon-panel (min-height: calc(100dvh - 194px)) → :host (100%) → .dungeon-activity-panel (100%) → here
+    padding-bottom: 0; // Match desktop — let directive's sticky fade reach the bottom edge
+
+    // Sprint 36: Compact log rows on mobile
+    .log-entry {
+      padding: 3px 0;
+      font-size: 12px;
+      gap: 6px;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .log-time {
+      font-size: 10px;
+      min-width: 3rem;
+    }
+
+    .log-message {
+      font-size: 12px;
+    }
+
+    .log-icon {
+      font-size: 11px;
+    }
+  }
+
+  // Sprint 27: Improved empty state for standalone dungeon tab
+  // Sprint 31: Use 40vh so it centers in the full-height dungeon tab
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    text-align: center;
+
+    .empty-hint {
+      font-size: 11px;
+      color: var(--text-color-muted);
+      margin-top: 4px;
+    }
+  }
+
+  // Sprint 36 + 38 + 27: Compact active adventurer status on mobile
+  // Sprint 27: Cap height so 3+ adventurers don't consume entire screen
+  .dungeon-adventurers {
+    margin-bottom: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .dungeon-adventurers .dungeon-adventurer {
+    padding: 4px 8px;
+    font-size: 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+
+    .name {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 35%;
+    }
+
+    .status {
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap; // Sprint 23: Prevent label wrapping on narrow screens
+      flex-shrink: 0;
+    }
+
+    // Sprint 38: Compact survival indicator
+    .survival-indicator {
+      flex: 1;
+      min-width: 60px;
+
+      .survival-bar {
+        height: 4px;
+      }
+
+      .survival-percent {
+        font-size: 10px;
+      }
+    }
+
+    // Sprint 38: Compact HP indicator during combat
+    // Sprint 22: Taller HP bar on mobile (up from 8px default)
+    .hp-indicator {
+      flex: 1;
+      min-width: 80px;
+      width: auto;
+      overflow: visible;
+      height: 14px;
+
+      .hp-text {
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+.dungeon-log {
+  // Content-sized recessed log card. `flex: 0 1 auto` (NOT `flex: 1`) is the
+  // crux: it sizes to its entries — a small filled card at the top of the
+  // panel when sparse (matching the customer cards), then shrinks + scrolls
+  // once the events outgrow the panel. `flex: 1` was the old bug: it stretched
+  // the bordered box to fill the whole panel = a giant empty rectangle.
+  // Scoped to >=768 so it cannot clobber the mobile `flex: 1` (fills the tab):
+  // this block sits AFTER the @media (max-width: 767px) override in this file,
+  // so an unscoped flex would win on mobile via equal-specificity source order.
+  @media (min-width: 768px) {
+    flex: 0 1 auto;
+  }
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+  padding: $spacing-tight;
+  background: var(--text-area-color);
+  @include depth-border-standard;
+  border-radius: $radius-base;
+
+  // Same native-focusable-scroll-region case as .dungeon-adventurers above.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+
+  .log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-tight;
+    font-size: $text-small;
+    line-height: 1.4;
+    padding: $spacing-micro 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ledger-entry-ink 210ms cubic-bezier(0.2, 0.82, 0.3, 1) both;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.warning {
+      .log-message {
+        color: var(--game-warning);
+      }
+    }
+
+    &.error,
+    &.death {
+      .log-message {
+        color: var(--game-danger);
+      }
+    }
+
+    &.success {
+      .log-message {
+        color: var(--game-success);
+      }
+    }
+
+    .log-time {
+      @include text-data;
+      font-size: $text-micro;
+      color: var(--text-color-muted);
+      flex-shrink: 0;
+      min-width: 3.5rem;
+    }
+
+    .log-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+
+      &.death {
+        color: var(--game-danger);
+      }
+
+      &.refuse {
+        color: var(--game-warning);
+      }
+    }
+
+    .event-detail {
+      font-size: $text-micro;
+      color: var(--text-color-muted);
+      padding: $spacing-micro 0 0 $spacing-standard;
+    }
+
+    .log-message {
+      flex: 1;
+      min-width: 0;
+
+      :host ::ng-deep .clickable-name {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+
+        &:hover {
+          text-decoration-style: solid;
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: $spacing-comfortable;
+    color: var(--text-color-muted);
+    font-size: $text-small;
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+// New events feel written into the dungeon ledger: a short paper tint and
+// 4px settle communicate change without leaving the feed in constant motion.
+@keyframes ledger-entry-ink {
+  from {
+    opacity: 0;
+    background: color-mix(in srgb, var(--cave-ember) 10%, transparent);
+    transform: translateY(-4px);
+  }
+
+  70% {
+    background: color-mix(in srgb, var(--cave-ember) 4%, transparent);
+  }
+
+  to {
+    opacity: 1;
+    background: transparent;
+    transform: translateY(0);
+  }
+}

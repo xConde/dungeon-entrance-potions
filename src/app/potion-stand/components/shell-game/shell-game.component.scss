@@ -1,0 +1,618 @@
+// =============================================================================
+// Shell Game Mini-Game Component Styles
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/cave' as *;
+
+// Component-level CSS variables (inherited from parent potion-stand)
+:host {
+  @include cave-tokens; // warm the mini-game into the torchlit cave palette
+
+  // Wizard hat colors — muted amethyst, readable on cream parchment (day-mode)
+  --hat-primary: #6d5a8a;
+  --hat-brim-color: #5a4872;
+
+  display: block;
+  flex-shrink: 0;
+}
+
+// `:host *` re-asserts the cave palette past the global `.night-mode *` per-element reset.
+:host * {
+  @include cave-tokens;
+}
+
+:host-context(.night-mode) {
+  // Slightly lighter amethyst for dark backgrounds
+  --hat-primary: #7c6b9e;
+  --hat-brim-color: #6a5988;
+}
+
+@keyframes messageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-$spacing-tight);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes potionVanish {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.15);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes burstOut {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--burst-x), var(--burst-y)) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px) scale(1.1);
+  }
+  30% {
+    transform: translateX(-50%) translateY(-12px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-28px) scale(0.9);
+  }
+}
+
+.shell-game-container {
+  flex-shrink: 0;
+  margin-top: 0;
+  // Card surface: gives the cups a grounded stage instead of floating in blank
+  // space. Uses the same panel token as the rest of the game UI.
+  padding: $spacing-tight $spacing-standard;
+  border: 1px solid var(--border-color);
+  background: var(--text-area-color);
+  border-radius: $radius-medium;
+  position: relative;
+}
+
+.shell-game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-tight;
+}
+
+// Desktop: header row with title left, status right
+.shell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: $spacing-tight;
+}
+
+.shell-title {
+  font-size: $text-small;
+  font-weight: $weight-semibold;
+  color: var(--text-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-tight;
+}
+
+.shell-title-hint {
+  font-size: $text-small;
+  font-weight: $weight-regular;
+  color: var(--text-color-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+}
+
+.shell-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+  z-index: 10;
+}
+
+// Hat row with flexbox ordering for shuffle
+.shell-hats-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: $spacing-generous;
+  // Tight: hat sprites are ~50px; a few extra px hosts the hover lift +
+  // potion bottle that appears under the lifted hat.
+  height: 64px;
+  padding-bottom: $spacing-micro;
+}
+
+.hat-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 50px;
+  height: 100%;
+  position: relative;
+  --hat-spacing: 74px; // Distance between slot centers — matches template transform multiplier
+  transition: transform 600ms $easing-standard; // Smooth shuffle animation
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover .wizard-hat,
+    &:focus-visible .wizard-hat {
+      filter: brightness(1.12) drop-shadow(0 7px 3px rgba(0, 0, 0, 0.5));
+      transform: translateY(-4px) rotate(-2deg);
+
+      .hat-band::after {
+        animation: hat-gem-glint 480ms ease-out both;
+      }
+    }
+
+    &:focus-visible {
+      outline: 1px dashed color-mix(in srgb, var(--cave-ember) 72%, transparent);
+      outline-offset: 4px;
+    }
+  }
+
+  &.selected {
+    .wizard-hat:not(.lifted) {
+      transform: translateY(-5px);
+      filter: brightness(1.1);
+    }
+  }
+}
+
+// Potion under the hat
+.shell-potion {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity $animation-standard $easing-standard;
+  z-index: 0;
+
+  &.visible {
+    opacity: 1;
+  }
+
+  &.collected {
+    animation: potionVanish 350ms $easing-standard forwards;
+  }
+}
+
+// Pop burst particles
+.pop-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.burst-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--game-success);
+  border-radius: 50%;
+  animation: burstOut 400ms $easing-standard forwards;
+
+  &:nth-child(1) {
+    --burst-x: -12px;
+    --burst-y: -14px;
+  }
+  &:nth-child(2) {
+    --burst-x: 12px;
+    --burst-y: -14px;
+    animation-delay: 30ms;
+  }
+  &:nth-child(3) {
+    --burst-x: -14px;
+    --burst-y: 8px;
+    animation-delay: 60ms;
+  }
+  &:nth-child(4) {
+    --burst-x: 14px;
+    --burst-y: 8px;
+    animation-delay: 90ms;
+  }
+}
+
+// Floating +1 indicator
+.potion-won-indicator {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: $text-small;
+  font-weight: 700;
+  color: var(--game-success);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  text-transform: capitalize;
+  animation: floatUp 1.4s $easing-standard forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+// Shell game bottle
+.shell-bottle {
+  width: 1.25rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .bottle-cork {
+    width: 0.5rem;
+    height: 0.2rem;
+    background: #a67c52;
+    border-radius: 2px 2px 0 0;
+    border: 1px solid color-mix(in srgb, #8b6342 80%, transparent);
+    border-bottom: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bottle-neck {
+    width: 0.4rem;
+    height: 0.25rem;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
+  }
+
+  .bottle-body {
+    width: 100%;
+    height: 1.5rem;
+    border-radius: 20% 20% 45% 45% / 10% 10% 40% 40%;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    @include depth-border-standard;
+    position: relative;
+    overflow: hidden;
+
+    .liquid-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 40% 40% / 0 0 35% 35%;
+      opacity: 0.9;
+    }
+
+    // Glass highlight
+    &::before {
+      content: '';
+      position: absolute;
+      top: 15%;
+      left: 10%;
+      width: 2px;
+      height: 55%;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      z-index: 1;
+    }
+  }
+}
+
+// Wizard hat - muted amethyst/slate, theme-aware (colors set on :host above)
+.wizard-hat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.45));
+  transition:
+    filter $animation-slow $easing-standard,
+    transform $animation-slow $easing-standard;
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+
+  &.lifted {
+    transform: translateY(-35px);
+  }
+
+  // Cone (main hat body) - muted amethyst
+  .hat-cone {
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 32px solid var(--hat-primary);
+    position: relative;
+
+    // Subtle highlight on left side
+    &::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: -12px;
+      width: 6px;
+      height: 18px;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.15), transparent);
+      transform: skewY(-15deg);
+    }
+  }
+
+  // Decorative band - gold accent (kept for warmth)
+  .hat-band {
+    width: 30px;
+    height: 5px;
+    background: #c9a227;
+    margin-top: -1px;
+    border-radius: 1px;
+    position: relative;
+
+    // Diamond decoration (pure CSS, no Unicode)
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 4px;
+      background: #fbbf24;
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+  }
+
+  // Brim - matching amethyst, slightly deeper
+  .hat-brim {
+    width: 44px;
+    height: 8px;
+    background: var(--hat-brim-color);
+    border-radius: 50%;
+    margin-top: -2px;
+    box-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.2),
+      inset 0 1px rgba(255, 255, 255, 0.08);
+  }
+}
+
+.shell-timer {
+  font-size: $text-small;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color-muted);
+  font-weight: 500;
+}
+
+.shell-result {
+  font-size: $text-small;
+  font-weight: 600;
+  animation: messageFadeIn $animation-standard;
+  color: var(--game-danger);
+
+  &.win {
+    color: var(--game-success);
+  }
+}
+
+.shell-hint {
+  font-size: $text-small;
+  color: var(--text-color-muted);
+}
+
+.shell-pick-prompt {
+  font-size: $text-small;
+  font-weight: 600;
+  color: var(--game-info);
+}
+
+@media (max-width: 767px) {
+  // Compact inline shell game — lightweight, clipped to prevent shuffle overflow
+  .shell-game-container {
+    padding: 6px 8px;
+    margin-top: 0;
+    margin-bottom: 6px;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  .hat-slot {
+    --hat-spacing: 48px; // 40px slot + 8px gap
+    width: 40px;
+  }
+
+  .shell-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+
+  .shell-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  // Hide the one-liner hint on mobile — not enough horizontal room
+  .shell-title-hint {
+    display: none;
+  }
+
+  .shell-status {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--game-info, #4fc3f7);
+  }
+
+  .shell-game-area {
+    padding: 2px 0; // Sprint 10: Minimal vertical padding so game stays compact when idle
+  }
+
+  .shell-hats-row {
+    gap: 8px;
+    height: 50px;
+    padding-bottom: 2px;
+  }
+
+  .wizard-hat {
+    &.lifted {
+      transform: translateY(-25px);
+    }
+
+    .hat-cone {
+      border-left-width: 12px;
+      border-right-width: 12px;
+      border-bottom-width: 24px;
+    }
+
+    .hat-band {
+      width: 22px;
+      height: 3px;
+    }
+
+    .hat-brim {
+      width: 32px;
+      height: 6px;
+    }
+  }
+
+  .shell-potion .shell-bottle {
+    transform: scale(0.6);
+  }
+
+  .potion-won-indicator {
+    font-size: 10px;
+  }
+}
+
+// Phase 4c — reduced-motion guards. Parent SCSS's universal-selector guard
+// does NOT penetrate Angular's emulated view encapsulation, so each child
+// component with animations needs its own @media block. Targets match the
+// actual animated classes in this file (re-audited post-merge):
+//   .shell-potion.collected → potionVanish
+//   .burst-particle         → burstOut
+//   .potion-won-indicator   → floatUp
+//   .shell-result           → messageFadeIn
+@media (prefers-reduced-motion: reduce) {
+  .shell-potion.collected,
+  .burst-particle,
+  .potion-won-indicator,
+  .shell-result {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+// A quick street hustle played on the same scarred counter as the bottles.
+.shell-game-container {
+  padding: 7px 12px 5px;
+  border: 1px solid color-mix(in srgb, var(--cave-frame-light) 55%, #160d08);
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 22%),
+    repeating-linear-gradient(88deg, #24150b 0 31px, #2b190d 31px 63px, #201108 63px 86px);
+  box-shadow:
+    inset 0 2px color-mix(in srgb, var(--cave-ember) 16%, transparent),
+    inset 0 -7px 12px rgba(0, 0, 0, 0.34);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%, 0 4px);
+}
+
+.shell-header {
+  margin-bottom: 1px;
+  padding-bottom: 3px;
+  border-bottom: 1px dotted color-mix(in srgb, var(--cave-ember) 23%, transparent);
+}
+
+.shell-title {
+  color: var(--cave-ember);
+  font-family: 'Uncial Antiqua', Georgia, serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.shell-title-hint,
+.shell-hint,
+.shell-pick-prompt,
+.shell-result {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+}
+
+@keyframes hat-gem-glint {
+  from {
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.82);
+  }
+
+  55% {
+    box-shadow: 0 0 7px rgba(251, 191, 36, 0.72);
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.18);
+  }
+
+  to {
+    box-shadow: 0 0 2px rgba(251, 191, 36, 0.24);
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  }
+}
+
+@media (max-width: 767px) {
+  .shell-game-container {
+    margin: 0 4px 6px;
+    padding: 6px 8px;
+    border: 1px solid color-mix(in srgb, var(--cave-frame-light) 45%, #160d08);
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent 25%),
+      repeating-linear-gradient(88deg, #24150b 0 31px, #2b190d 31px 63px, #201108 63px 86px);
+  }
+
+  .shell-title {
+    color: var(--cave-ember);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hat-slot,
+  .wizard-hat {
+    transition: none !important;
+  }
+
+  .hat-slot.clickable:hover .wizard-hat,
+  .hat-slot.clickable:focus-visible .wizard-hat {
+    transform: none;
+  }
+
+  .hat-slot.clickable .hat-band::after {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,285 @@
+// =============================================================================
+// Day Summary Modal Component Styles
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/tavern' as *;
+
+// Tavern parchment treatment — the day's tale read off the innkeeper's ledger.
+// --tavern-* cascade from the potion-stand :host. `:host *` is required so the
+// global `.night-mode *` token reset doesn't keep the modal surfaces cold.
+:host {
+  @include tavern-tokens;
+}
+
+:host * {
+  @include tavern-tokens;
+  // Re-cross the encapsulation boundary for the shell's global focus-color
+  // reset — see the matching comment in game-header.component.scss.
+  --focus-color: inherit;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.summary-overlay {
+  // :host carries `transform: translateZ(0)`, so this fixed overlay is
+  // actually positioned against the game embed, not the viewport. A stale
+  // `bottom: 85px` (meant to clear the site footer back when it was
+  // viewport-relative) carved an un-dimmed strip out of the bottom of the
+  // board AND pushed the modal above true centre — it read as the overlay
+  // "bouncing" high with a naked bottom. Full inset matches the game-over
+  // modal and centres the dialog properly.
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-color) 90%, transparent);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-comfortable;
+  animation: fadeIn $animation-standard $easing-standard;
+}
+
+.summary-modal {
+  background: linear-gradient(168deg, var(--tavern-parchment), var(--tavern-parchment-2));
+  border: 2px solid var(--tavern-frame);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tavern-gold) 20%, transparent),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: $radius-medium;
+  width: 20rem;
+  max-width: 95vw;
+  // Symmetric padding — the old lighter bottom left the Continue button
+  // floating with a bare gap beneath it.
+  padding: $spacing-generous;
+  animation: slideInScale $animation-slow $easing-standard;
+  user-select: none;
+}
+
+// =============================================================================
+// Title
+// =============================================================================
+.summary-title {
+  @include tavern-heading;
+  margin: 0;
+  font-size: $text-xlarge;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+// =============================================================================
+// Narrative Line — the emotional beat
+// =============================================================================
+.summary-narrative {
+  margin: $spacing-standard 0;
+  font-size: $text-small;
+  line-height: 1.5;
+  text-align: center;
+  font-style: italic;
+  color: var(--text-color-muted);
+
+  &.tone-good {
+    color: var(--game-success);
+  }
+
+  &.tone-grim {
+    color: var(--game-danger);
+  }
+
+  &.tone-guilt {
+    color: var(--game-warning);
+  }
+
+  &.tone-mixed {
+    color: var(--text-color-muted);
+  }
+
+  &.tone-neutral {
+    color: var(--text-color-muted);
+  }
+}
+
+// =============================================================================
+// Economy Ledger — Gold + Reputation with deltas
+// Single grid so header and value columns align perfectly
+// =============================================================================
+.summary-ledger {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: $spacing-micro $spacing-tight;
+  align-items: baseline;
+  padding-bottom: $spacing-standard;
+  border-bottom: 1px solid var(--border-color);
+
+  // Flatten wrappers so children participate in the parent grid
+  .ledger-header,
+  .ledger-row {
+    display: contents;
+  }
+
+  .header-spacer {
+    // Empty — occupies 1fr label column
+  }
+
+  .header-label {
+    font-size: $text-micro;
+    color: var(--text-color-muted);
+    font-weight: $weight-medium;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: right;
+    padding-bottom: $spacing-micro;
+  }
+
+  .ledger-label {
+    font-size: $text-small;
+    color: var(--text-color);
+    font-weight: $weight-medium;
+  }
+
+  .ledger-value {
+    @include text-data;
+    font-size: $text-base;
+    font-weight: $weight-bold;
+    color: var(--text-color);
+    text-align: right;
+
+    &.negative {
+      color: var(--game-danger);
+    }
+  }
+
+  .ledger-delta {
+    @include text-data;
+    font-size: $text-base;
+    font-weight: $weight-bold;
+    text-align: right;
+
+    &.positive {
+      color: var(--game-success);
+    }
+
+    &.negative {
+      color: var(--game-danger);
+    }
+  }
+}
+
+// =============================================================================
+// Outcomes — compact stat chips
+// =============================================================================
+.summary-outcomes {
+  display: flex;
+  justify-content: center;
+  gap: $spacing-comfortable;
+  padding: $spacing-standard 0;
+
+  .outcome-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+
+    .outcome-value {
+      @include text-data;
+      font-size: $text-medium;
+      font-weight: $weight-bold;
+      color: var(--text-color);
+    }
+
+    .outcome-label {
+      font-size: $text-micro;
+      color: var(--text-color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    &.saved .outcome-value {
+      color: var(--game-success);
+    }
+
+    &.deaths .outcome-value {
+      color: var(--game-danger);
+    }
+
+    &.boss .outcome-value {
+      color: var(--game-gold);
+    }
+  }
+}
+
+// =============================================================================
+// Death Breakdown — cause attribution
+// =============================================================================
+.death-breakdown {
+  display: flex;
+  justify-content: center;
+  gap: $spacing-standard;
+  padding-bottom: $spacing-standard;
+  border-bottom: 1px solid var(--border-color);
+
+  .breakdown-item {
+    font-size: $text-micro;
+    font-style: italic;
+
+    &.fault {
+      color: var(--game-warning);
+    }
+
+    &.unprepared {
+      color: var(--game-danger);
+    }
+
+    &.dungeon {
+      color: var(--text-color-muted);
+    }
+  }
+}
+
+// =============================================================================
+// Continue Button
+// =============================================================================
+.summary-continue {
+  @include tavern-button-gold;
+  @include focus-visible-ring;
+  width: 100%;
+  padding: $spacing-tight $spacing-comfortable;
+  font-size: $text-medium;
+  margin-top: $spacing-standard;
+}
+
+// Small mobile
+@media (max-width: 768px) {
+  .summary-modal {
+    padding: $spacing-standard;
+  }
+
+  .summary-continue {
+    min-height: 44px;
+  }
+}
+
+// Phase 4c — reduced-motion guard for modal entrance animation.
+@media (prefers-reduced-motion: reduce) {
+  .summary-overlay,
+  .summary-modal {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,1120 @@
+@use './design-system' as *;
+@use './cave' as *;
+
+// =============================================================================
+// Main Container - Single Page Application Layout
+// Fixed header + three-panel grid + fixed footer
+// =============================================================================
+
+// Tavern + cave palettes — defined on :host (not .potion-stand-container) so
+// they also reach the day-summary / game-over modals, which sit inside the
+// host but OUTSIDE the container. Vars cascade through view encapsulation.
+// Default values are the night theme (SSR default); the day overrides below
+// swap to dusk-lit parchment/stone so contrast holds in both modes.
+:host {
+  --tavern-parchment: #271d13;
+  --tavern-parchment-2: #1b130c;
+  --tavern-ink: #ecdcbb;
+  --tavern-ink-muted: #b29a73;
+  --tavern-gold: #e6bd5e;
+  --tavern-frame: #5e4528;
+  --tavern-frame-light: #8a6738;
+  --tavern-slot: #18110a;
+  --tavern-backdrop: #17100a;
+  --tavern-backdrop-2: #0d0805;
+
+  // Cave — the torchlit dungeon-entrance that the playing phase sits in.
+  --cave-ink: #e2d4ba;
+  --cave-ink-muted: #9c8b70;
+  --cave-ember: #e8a049;
+  --cave-frame: #4c3a24;
+  --cave-frame-light: #6e5430;
+  --cave-stone: #1e1813;
+  --cave-stone-2: #15110c;
+  --cave-slot: #120e09;
+  --cave-backdrop: #130f0b;
+  --cave-backdrop-2: #090605;
+}
+
+:host-context(.day-mode) {
+  // Day mode is a dusk-lit tavern/cave, not bright noon — deeper, warmer
+  // backdrops with the boards still light enough to keep dark ink readable.
+  --tavern-parchment: #e7d6ac;
+  --tavern-parchment-2: #d8c490;
+  --tavern-ink: #352713;
+  --tavern-ink-muted: #6a5530;
+  --tavern-gold: #845417;
+  --tavern-frame: #7d5e30;
+  --tavern-frame-light: #ab8b58;
+  --tavern-slot: #cdb886;
+  --tavern-backdrop: #a9863f;
+  --tavern-backdrop-2: #8a6a2e;
+
+  // Cave — dusk-lit stone cave-mouth (cooler/greyer than the tavern's parchment).
+  --cave-ink: #2f2716;
+  --cave-ink-muted: #635334;
+  --cave-ember: #8a5210;
+  --cave-frame: #75592f;
+  --cave-frame-light: #a2854f;
+  --cave-stone: #d1be94;
+  --cave-stone-2: #bfaa7f;
+  --cave-slot: #bba87c;
+  --cave-backdrop: #9b8460;
+  --cave-backdrop-2: #806b49;
+}
+
+// Main Container
+.potion-stand-container {
+  position: relative;
+  width: 100%;
+  // Pre-fix this had `min/max-height: calc(100vh - 85px)` which assumed a
+  // header+footer height of 85px. The portfolio's <app-footer> is actually
+  // `clamp(3rem, 10vh, 7rem)` — up to 112px on a tall viewport — so the
+  // container was ~27px taller than its wrapper allowed. The original
+  // `.global-router-outlet-wrapper { overflow-y: auto }` masked it (users
+  // scrolled the wrapper a few pixels to align panel bottoms with the
+  // footer). After Phase 11 locked the wrapper, that scroll path is gone
+  // and the bottom of the container started getting clipped.
+  //
+  // Letting `height: 100%` flow through the flex chain (detail-wrapper →
+  // detail-content → main-box) gives the container exactly the wrapper's
+  // available height, regardless of how the footer's clamp() resolves.
+  height: 100%;
+  min-height: 0;
+  // Base atmosphere is the torchlit dungeon-entrance "cave": warm ember glow
+  // pooled near the shop, fading to dark stone at the edges (the dungeon
+  // depths). The merchant lobby overrides this with the cosier tavern wood.
+  background:
+    radial-gradient(
+      ellipse 110% 55% at 50% 6%,
+      color-mix(in srgb, var(--cave-ember) 14%, transparent),
+      transparent 56%
+    ),
+    linear-gradient(var(--cave-backdrop), var(--cave-backdrop-2));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: $spacing-micro;
+  border-radius: $spacing-standard $spacing-standard 0 0;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: Georgia, 'Times New Roman', serif;
+
+  // Guilt-driven desaturation: up to 15% at max guilt.
+  // Kept subtle so day-mode cream palette stays legible; night-mode darkens
+  // further via :host-context(.night-mode) below.
+  filter: saturate(calc(1 - var(--guilt-intensity, 0) * 0.15));
+  transition:
+    background 0.45s ease,
+    filter 3s ease;
+}
+
+// Tavern lobby backdrop — during the merchant phase the whole container (the
+// transparent header + the gutters behind the panels) becomes warm candlelit
+// wood, darker than the parchment boards so they read as lit shelves on a
+// tavern wall instead of cards floating on cold black.
+.potion-stand-container.is-merchant {
+  background:
+    radial-gradient(
+      ellipse 120% 55% at 50% -8%,
+      color-mix(in srgb, var(--tavern-gold) 13%, transparent),
+      transparent 62%
+    ),
+    linear-gradient(var(--tavern-backdrop), var(--tavern-backdrop-2));
+  transition:
+    background 0.45s ease,
+    filter 3s ease;
+}
+
+// =============================================================================
+// Market Ticker
+// =============================================================================
+
+.market-ticker {
+  overflow: hidden;
+  // --surface-alt is not defined globally; use a theme-aware tint so the
+  // ticker reads against both day-mode cream and night-mode dark.
+  background: color-mix(in srgb, var(--text-color) 8%, var(--bg-color));
+  padding: $spacing-micro 0;
+  font-size: $text-small;
+  color: var(--text-color-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ticker-content {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-tight;
+  white-space: nowrap;
+  animation: ticker-scroll 15s linear infinite;
+  padding-left: 100%;
+}
+
+// Phase 12 — trend SVGs from getIcon('trend-up' / 'trend-down' / 'chart-line').
+// Inherits currentColor from .ticker-content; the up/down/stable variants
+// override that with semantic colours so the direction lands at-a-glance.
+.ticker-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.1em;
+  line-height: 1;
+
+  svg {
+    display: block;
+  }
+
+  &--up {
+    color: var(--game-success, #2e7d32);
+  }
+
+  &--down {
+    color: var(--game-danger, #d32f2f);
+  }
+
+  &--stable {
+    color: var(--text-color-muted);
+  }
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+// =============================================================================
+// Guilt Vignette - Red edge overlay that intensifies with guilt level
+// =============================================================================
+
+.guilt-vignette {
+  // position: absolute scopes the vignette to .potion-stand-container so
+  // it doesn't bleed over the site header/footer. Pre-fix this was `fixed`
+  // and rendered the red gradient across the whole viewport, including the
+  // portfolio chrome — only the mobile breakpoint overrode it correctly.
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    color-mix(in srgb, var(--game-danger) 60%, transparent) 100%
+  );
+  transition: opacity 2s ease;
+}
+
+// =============================================================================
+// Pause Overlay - Full-container scrim shown when the player pauses mid-play
+// Sits above the panels + guilt vignette (z 100) but below the day-summary /
+// game-over modals (z 9999), which never co-occur with it anyway.
+// =============================================================================
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-comfortable;
+  cursor: pointer;
+  border: 0;
+  // Scrim dims the board but leaves it faintly readable behind the blur, so
+  // the player still has spatial context for what they paused on.
+  background: color-mix(in srgb, var(--bg-color) 62%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeIn $animation-standard $easing-standard;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: -4px;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-tight;
+    pointer-events: none; // clicks fall through to the overlay's resume handler
+    text-align: center;
+  }
+
+  &__glyph {
+    display: flex;
+    gap: 6px;
+    margin-bottom: $spacing-tight;
+
+    .pause-bar {
+      width: 12px;
+      height: 44px;
+      border-radius: 3px;
+      background: var(--text-color);
+      opacity: 0.92;
+    }
+  }
+
+  &__title {
+    font-size: clamp(2rem, 6vw, 3rem);
+    font-weight: $weight-bold;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-color);
+  }
+
+  &__hint {
+    font-size: $text-small;
+    color: var(--text-color-muted, color-mix(in srgb, var(--text-color) 60%, transparent));
+
+    kbd {
+      @include text-data;
+      font-size: $text-micro;
+      padding: 1px 6px;
+      border: 1px solid var(--border-color);
+      border-radius: $radius-small;
+      background: var(--text-area-color);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pause-overlay {
+    animation: none;
+  }
+}
+
+// =============================================================================
+// Three-Panel Game Grid - Core SPA Layout
+// Left (Customers) → Center (Shop) → Right (Activity)
+// Natural workflow: Select → Act → Monitor
+// =============================================================================
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr; // Emphasize center action panel
+  grid-template-rows: 1fr auto; // Row 1 fills viewport; row 2 (shell game) collapses to content
+  // Column gap stays at $spacing-standard so the panels breathe horizontally;
+  // row gap trimmed so the shell-game tucks tight under the potion shop and
+  // we stop wasting ~24px of vertical space between rows. The shell-game's
+  // own margin-top + padding still provide visual separation.
+  column-gap: $spacing-standard;
+  row-gap: $spacing-micro;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  padding-left: $spacing-major;
+  padding-right: $spacing-major;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    padding-left: $spacing-comfortable;
+    padding-right: $spacing-comfortable;
+  }
+}
+
+// The three work zones settle onto the counter in reading order. This is a
+// one-time spatial cue (customers → bottles → dungeon), not ambient motion.
+// Keeping the distance to 6px avoids disturbing the locked SPA geometry.
+@media (prefers-reduced-motion: no-preference) {
+  .game-grid:not(.is-merchant) {
+    > .customers-panel,
+    > .potions-panel,
+    > .dungeon-panel,
+    > .shell-game-section {
+      // `backwards` applies the entrance pose during stagger delays, then
+      // releases transform entirely. `both` would leave a zero transform in
+      // the computed style and turn this scrolling panel into a containing
+      // block for the Stillroom's fixed mobile overlay.
+      animation: cave-panel-settle 320ms cubic-bezier(0.2, 0.82, 0.3, 1) backwards;
+    }
+
+    > .potions-panel {
+      animation-delay: 45ms;
+    }
+
+    > .dungeon-panel {
+      animation-delay: 90ms;
+    }
+
+    > .shell-game-section {
+      animation-delay: 135ms;
+    }
+  }
+
+  .game-grid.is-merchant {
+    > .customers-panel,
+    > .potions-panel,
+    > .dungeon-panel {
+      animation: tavern-panel-settle 280ms cubic-bezier(0.2, 0.82, 0.3, 1) backwards;
+    }
+
+    > .potions-panel {
+      animation-delay: 45ms;
+    }
+
+    > .dungeon-panel {
+      animation-delay: 90ms;
+    }
+  }
+}
+
+@keyframes cave-panel-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes tavern-panel-settle {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.995);
+  }
+}
+
+// Shared Panel Styles - Consistent container treatment
+.customers-panel,
+.potions-panel,
+.dungeon-panel {
+  @include panel-base; // Background, border, radius from design system
+  padding: $spacing-comfortable;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  // Phase 11 — defense-in-depth against scroll chaining. Inner scroll
+  // areas (.merchant-scroll-area, .dungeon-adventurers, etc.) also set
+  // overscroll-behavior, but rooting it here covers any future scroll
+  // descendant that forgets to opt in.
+  overscroll-behavior: contain;
+  min-height: 0;
+
+  .panel-title {
+    font-size: $text-large;
+    font-weight: $weight-semibold;
+    margin-bottom: $spacing-tight;
+    padding-bottom: $spacing-tight;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $spacing-tight;
+
+    .queue-count,
+    .floor-badge {
+      @include text-data; // Monospace for counts
+      font-size: $text-micro;
+      padding: $spacing-micro $spacing-tight;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: $radius-small;
+      font-weight: $weight-semibold;
+      color: var(--text-color);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: $spacing-major $spacing-comfortable;
+    opacity: 0.5;
+    font-size: $text-base;
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+// Explicit desktop grid placement (prevents shift from shell-game-section as 4th item)
+.customers-panel {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.potions-panel {
+  grid-column: 2;
+  grid-row: 1;
+
+  &.merchant-expanded {
+    grid-row: 1 / 3;
+  }
+}
+
+.dungeon-panel {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+// =============================================================================
+// Tavern lobby — warm medieval reskin of the merchant / between-levels panels.
+// Each panel becomes an aged parchment board lit by candle-glow from above,
+// framed in gilt-edged wood. Only colours/atmosphere change here; the grid
+// structure is untouched. Merchant child components warm their own contents
+// via the --tavern-* tokens (see _tavern.scss).
+// =============================================================================
+.game-grid.is-merchant {
+  .customers-panel,
+  .potions-panel,
+  .dungeon-panel {
+    position: relative;
+    color: var(--tavern-ink);
+    border: 2px solid var(--tavern-frame);
+    border-radius: 5px;
+    // Owner redo (2026-08-16): matches the tutorial/help overlay cards'
+    // material (_modals.scss) — solid parchment fill, no glow, no grain.
+    // The previous pass's repeating-linear-gradient striations and radial
+    // gold glow read as synthetic texture rather than an aged board; both
+    // are gone. The keyline below is dropped too (see box-shadow comment).
+    background: linear-gradient(162deg, var(--tavern-parchment), var(--tavern-parchment-2));
+    box-shadow:
+      inset 0 2px 0 color-mix(in srgb, var(--tavern-frame-light) 70%, transparent),
+      inset 0 -18px 30px rgba(0, 0, 0, 0.26);
+
+    // Gilt corner studs, the same two-dot rivet motif as the cave panels
+    // below, recoloured for the tavern's gold-leaf frame so the parchment
+    // boards read as pinned to the wall. A ::before/::after pair, not a
+    // box-shadow twin: box-shadow offsets only take lengths, so a
+    // calc(100% - Npx) offset is invalid CSS and the twin never paints.
+    &::before,
+    &::after {
+      position: absolute;
+      top: 8px;
+      z-index: 4;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--tavern-gold) 70%, #3a2a10);
+      content: '';
+      pointer-events: none;
+    }
+
+    &::before {
+      left: 8px;
+    }
+
+    &::after {
+      right: 8px;
+    }
+  }
+}
+
+// =============================================================================
+// Cave entrance — playing-phase panels as torchlit stone niches. Darker and
+// rougher than the tavern's parchment boards; an ember rim catches the light
+// from the shop's torches while the depths recede into shadow.
+// =============================================================================
+.game-grid:not(.is-merchant) {
+  .customers-panel,
+  .potions-panel,
+  .dungeon-panel {
+    position: relative;
+    color: var(--cave-ink);
+    border: 1px solid color-mix(in srgb, var(--cave-frame-light) 58%, var(--cave-frame));
+    border-radius: 0;
+    // Owner redo (2026-08-16): same "no glow, no grain" standard as the
+    // tavern panels above — the striations and the ember glow/keyline the
+    // previous pass added or amplified here are gone.
+    background: linear-gradient(170deg, var(--cave-stone), var(--cave-stone-2));
+    box-shadow:
+      inset 0 3px 0 color-mix(in srgb, var(--cave-frame-light) 40%, transparent),
+      inset 0 -28px 48px rgba(0, 0, 0, 0.2),
+      0 5px 12px rgba(0, 0, 0, 0.24);
+    clip-path: polygon(
+      5px 0,
+      calc(100% - 5px) 0,
+      100% 5px,
+      100% calc(100% - 5px),
+      calc(100% - 5px) 100%,
+      5px 100%,
+      0 calc(100% - 5px),
+      0 5px
+    );
+
+    // Iron corner rivets as a ::before/::after pair. The old box-shadow twin
+    // used a calc(100% - Npx) offset, which is invalid CSS (box-shadow
+    // offsets only take lengths), so the right-hand rivet never painted.
+    &::before,
+    &::after {
+      position: absolute;
+      top: 7px;
+      z-index: 4;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--cave-frame-light) 74%, #33200e);
+      content: '';
+      pointer-events: none;
+    }
+
+    &::before {
+      left: 7px;
+    }
+
+    &::after {
+      right: 7px;
+    }
+
+    .panel-title {
+      @include cave-heading;
+      margin-bottom: $spacing-standard;
+      padding: 0 4px $spacing-tight;
+      border-bottom: 3px double color-mix(in srgb, var(--cave-ember) 27%, transparent);
+      font-size: clamp(0.92rem, 2vw, 1.15rem);
+      font-weight: 400;
+
+      .queue-count,
+      .floor-badge {
+        padding: 2px 6px;
+        border: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--cave-ember) 42%, transparent);
+        border-radius: 0;
+        color: var(--cave-ink-muted);
+        font-family: $font-mono;
+        font-size: 8px;
+      }
+    }
+  }
+
+  .customers-panel {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--cave-ember) 4%, transparent), transparent 32%),
+      linear-gradient(170deg, var(--cave-stone), var(--cave-stone-2));
+  }
+
+  .potions-panel {
+    padding: 12px 8px 8px;
+    border-color: color-mix(in srgb, var(--cave-ember) 30%, var(--cave-frame));
+    background: linear-gradient(170deg, #21160e, #100a06);
+  }
+
+  .dungeon-panel {
+    background:
+      linear-gradient(180deg, transparent 44%, rgba(0, 0, 0, 0.24)), linear-gradient(170deg, #1a1916, #0d0d0c);
+  }
+}
+
+// Shell game section — desktop grid placement (center column, below potion shop).
+// Sized to the actual hat row height (70px) plus padding/border (~25px). The
+// previous 160px floor wasted ~65px of vertical space because the visible
+// content tops out around 95px; reclaiming that space gives the potion shop
+// above a taller scroll-area without changing the game itself.
+.shell-game-section {
+  grid-column: 2;
+  grid-row: 2;
+  padding: 0;
+  min-height: 100px;
+}
+
+// =============================================================================
+// Close-day ritual — global decision modal, contained by the SPA shell
+// =============================================================================
+
+.close-day-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  padding: 12px;
+  place-items: center;
+  background: rgba(7, 4, 2, 0.78);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: close-day-fade 160ms ease-out;
+}
+
+.close-day-dialog {
+  position: relative;
+  width: min(100%, 34rem);
+  max-height: calc(100% - 12px);
+  padding: 18px;
+  overflow-y: auto;
+  border: 1px solid #90693b;
+  border-top: 3px solid #b57b35;
+  background:
+    radial-gradient(circle at 18% 0, rgba(181, 123, 53, 0.16), transparent 42%),
+    repeating-linear-gradient(91deg, #21150c 0 34px, #29190e 34px 62px, #1c1109 62px 83px);
+  color: #e6d5b4;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.68),
+    inset 0 0 28px rgba(0, 0, 0, 0.38);
+  clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%, 0 7px);
+  animation: close-day-rise 210ms cubic-bezier(0.2, 0.85, 0.3, 1);
+  scrollbar-color: #79512b #160e08;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #160e08;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #79512b;
+  }
+}
+
+.close-day-sign {
+  position: absolute;
+  top: 22px;
+  right: 18px;
+  display: grid;
+  width: 82px;
+  height: 45px;
+  place-items: center;
+  border: 1px solid #b7884f;
+  background: linear-gradient(#342112, #211309);
+  color: #d9aa62;
+  box-shadow: 0 5px 8px rgba(0, 0, 0, 0.35);
+  transform: rotate(2deg);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: close-sign-settle 420ms cubic-bezier(0.18, 0.85, 0.3, 1.15) 90ms both;
+  }
+
+  &::before,
+  &::after {
+    position: absolute;
+    top: -14px;
+    width: 1px;
+    height: 14px;
+    background: #b7884f;
+    content: '';
+  }
+
+  &::before {
+    left: 19px;
+    transform: rotate(16deg);
+    transform-origin: bottom;
+  }
+
+  &::after {
+    right: 19px;
+    transform: rotate(-16deg);
+    transform-origin: bottom;
+  }
+
+  span {
+    position: absolute;
+    top: 4px;
+    color: #9f8b6d;
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    text-decoration: line-through;
+    text-transform: uppercase;
+  }
+
+  strong {
+    margin-top: 10px;
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+}
+
+.close-day-heading {
+  padding-right: 98px;
+
+  &__eyebrow {
+    color: #bd8b4d;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 3px 0 5px;
+    color: #e3a34f;
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 400;
+  }
+
+  p {
+    max-width: 27rem;
+    margin: 0;
+    color: #ad9a79;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+}
+
+.close-day-ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 16px 0 10px;
+  border: 1px solid #84643d;
+  background: repeating-linear-gradient(0deg, transparent 0 17px, rgba(43, 29, 17, 0.07) 17px 18px), #c8ae78;
+  color: #2b1d11;
+
+  > div {
+    display: flex;
+    min-width: 0;
+    min-height: 70px;
+    flex-direction: column;
+    justify-content: center;
+    padding: 7px 9px;
+    border-right: 1px dashed rgba(43, 29, 17, 0.3);
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+
+  span {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    margin: 2px 0;
+    color: #65401b;
+    font-size: 17px;
+  }
+
+  small {
+    font-size: 9px;
+    font-style: italic;
+    line-height: 1.15;
+  }
+
+  &__danger strong,
+  &__danger small {
+    color: #8c3028;
+  }
+}
+
+.close-day-warning {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 7px 10px 7px 8px;
+  border: 1px dashed rgba(198, 83, 63, 0.48);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 15px, rgba(198, 83, 63, 0.04) 15px 16px), rgba(198, 83, 63, 0.07);
+  color: #d8a493;
+  font-size: 11px;
+  line-height: 1.35;
+
+  &::before {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    content: '!';
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 13px;
+    font-weight: 700;
+    transform: rotate(-6deg);
+  }
+
+  &.is-safe {
+    border-color: rgba(111, 155, 82, 0.48);
+    background:
+      repeating-linear-gradient(0deg, transparent 0 15px, rgba(111, 155, 82, 0.035) 15px 16px), rgba(111, 155, 82, 0.06);
+    color: #afc59b;
+
+    &::before {
+      content: '✓';
+    }
+  }
+}
+
+.close-day-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 7px;
+  margin-top: 12px;
+
+  button {
+    min-height: 46px;
+    padding: 7px 10px;
+    border-radius: 0;
+    cursor: pointer;
+    font: inherit;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      box-shadow 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-color, #4fc3f7);
+      outline-offset: 2px;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .close-day-cancel {
+    border: 1px solid rgba(230, 213, 180, 0.28);
+    background: rgba(0, 0, 0, 0.12);
+    color: #d2c1a2;
+
+    &:hover {
+      border-color: rgba(230, 213, 180, 0.56);
+      background: rgba(230, 213, 180, 0.06);
+      color: #ead9bb;
+      transform: translateY(-1px);
+    }
+  }
+
+  .close-day-confirm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ad7130;
+    background: linear-gradient(#68431f, #3b2411);
+    color: #f0d7ac;
+    font-weight: 700;
+
+    &:hover {
+      border-color: #d4974e;
+      background: linear-gradient(#7c5228, #482b14);
+      box-shadow:
+        inset 0 1px rgba(255, 230, 179, 0.12),
+        0 4px 10px rgba(0, 0, 0, 0.28);
+      transform: translateY(-1px);
+    }
+
+    small {
+      margin-top: 2px;
+      color: #d0a66a;
+      font-size: 8px;
+      font-style: italic;
+      font-weight: 400;
+    }
+  }
+}
+
+@keyframes close-sign-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-9px) rotate(-5deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(1px) rotate(3deg);
+  }
+
+  to {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes close-day-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes close-day-rise {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+}
+
+@media (max-width: 500px) {
+  .close-day-scrim {
+    padding: 8px;
+  }
+
+  .close-day-dialog {
+    padding: 14px;
+  }
+
+  .close-day-sign {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 72px;
+    height: 39px;
+    margin: 8px auto 12px;
+  }
+
+  .close-day-heading {
+    padding-right: 0;
+    text-align: center;
+
+    h2 {
+      font-size: 1.05rem;
+    }
+  }
+
+  .close-day-ledger {
+    grid-template-columns: 1fr;
+
+    > div {
+      min-height: 52px;
+      border-right: 0;
+      border-bottom: 1px dashed rgba(43, 29, 17, 0.3);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+
+  .close-day-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Short phones keep the three ledger facts side-by-side and return the sign
+// to a hanging corner. This preserves both decisions without introducing a
+// modal scrollbar or hiding the confirm action below the portfolio footer.
+@media (max-width: 500px) and (max-height: 650px) {
+  .close-day-dialog {
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .close-day-sign {
+    position: absolute;
+    top: 11px;
+    right: 10px;
+    width: 58px;
+    height: 32px;
+    margin: 0;
+
+    &::before,
+    &::after {
+      top: -9px;
+      height: 9px;
+    }
+
+    span {
+      top: 2px;
+      font-size: 6px;
+    }
+
+    strong {
+      margin-top: 8px;
+      font-size: 10px;
+    }
+  }
+
+  .close-day-heading {
+    padding-right: 64px;
+    text-align: left;
+
+    &__eyebrow {
+      font-size: 7px;
+    }
+
+    h2 {
+      margin: 2px 0 3px;
+      font-size: 0.95rem;
+    }
+
+    p {
+      font-size: 9px;
+      line-height: 1.2;
+    }
+  }
+
+  .close-day-ledger {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 8px 0 6px;
+
+    > div {
+      min-height: 70px;
+      padding: 4px 5px;
+      border-right: 1px dashed rgba(43, 29, 17, 0.3);
+      border-bottom: 0;
+
+      &:last-child {
+        border-right: 0;
+      }
+    }
+
+    span {
+      font-size: 7px;
+      letter-spacing: 0.03em;
+    }
+
+    strong {
+      font-size: 14px;
+    }
+
+    small {
+      font-size: 7px;
+    }
+  }
+
+  .close-day-warning {
+    grid-template-columns: 18px 1fr;
+    gap: 5px;
+    padding: 4px 5px;
+    font-size: 8px;
+    line-height: 1.2;
+
+    &::before {
+      width: 17px;
+      height: 17px;
+      font-size: 10px;
+    }
+  }
+
+  .close-day-actions {
+    grid-template-columns: 1fr 1.15fr;
+    gap: 5px;
+    margin-top: 6px;
+
+    button {
+      min-height: 44px;
+      padding: 4px 6px;
+      font-size: 11px;
+    }
+  }
+}
+
+// =============================================================================
+// Night-mode: deeper guilt desaturation (preserve the dread in dark theme)
+// =============================================================================
+
+:host-context(.night-mode) {
+  .potion-stand-container {
+    // Allow up to 30% desaturation in night-mode where the palette can handle it
+    filter: saturate(calc(1 - var(--guilt-intensity, 0) * 0.3));
+  }
+}
+
+// =============================================================================
+// Reduced Motion: market ticker — stop scroll, show text statically
+// =============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  .close-day-scrim,
+  .close-day-dialog {
+    animation: none;
+  }
+
+  .ticker-content {
+    animation: none;
+    // Reset the left-offset so the content is visible rather than
+    // stranded 100% off-screen waiting for the scroll to begin.
+    padding-left: $spacing-standard;
+  }
+}

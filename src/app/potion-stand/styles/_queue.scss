@@ -1,0 +1,381 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Customers Panel - Left column (Input zone)
+// =============================================================================
+
+.customers-panel {
+  .customer-queue {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-comfortable; // 16px - generous spacing for decision-making
+    min-height: 0;
+
+    // Adventurer Card - Clean, symmetric padding, monospace HP
+    .adventurer-card {
+      position: relative;
+      padding: $spacing-standard; // Symmetric!
+      background: var(--text-area-color);
+      @include depth-border-standard;
+      border-radius: $radius-base;
+      cursor: pointer;
+      transition: border-color $animation-standard $easing-standard;
+      flex-shrink: 0;
+
+      // Add bottom spacing to the last card for comfortable scrolling
+      &:last-child {
+        margin-bottom: $spacing-comfortable;
+      }
+
+      &:hover {
+        border-color: var(--game-info);
+      }
+
+      &.selected {
+        border-color: var(--game-gold);
+        background: color-mix(in srgb, var(--game-gold) 3%, var(--text-area-color));
+      }
+
+      &.desperate {
+        border-color: var(--game-danger);
+        // Removed pulse animation - borders-only approach
+      }
+
+      &.low-hp {
+        border-color: var(--game-warning);
+      }
+
+      .adventurer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: $spacing-tight;
+        gap: $spacing-tight;
+
+        .adventurer-left {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-micro;
+          flex: 1;
+          min-width: 0;
+
+          .name-row {
+            display: flex;
+            align-items: center;
+            gap: $spacing-tight;
+
+            .class-icon {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 24px;
+              height: 24px;
+              flex-shrink: 0;
+              color: var(--text-color-muted);
+              background: color-mix(in srgb, var(--text-color) 8%, transparent);
+              border-radius: $radius-base;
+              @include depth-border-subtle;
+
+              svg {
+                width: 14px;
+                height: 14px;
+              }
+            }
+
+            .adventurer-name {
+              font-size: $text-medium;
+              font-weight: $weight-semibold;
+              line-height: 1.2;
+            }
+
+            .adventurer-badges {
+              display: flex;
+              gap: $spacing-micro * 2; // Increased spacing between badges
+              align-items: center;
+              margin-left: $spacing-micro * 2; // Add some space from the name
+
+              .badge {
+                font-size: $text-base; // Increased from $text-small
+                font-weight: $weight-regular;
+                line-height: 1;
+                // Text-only symbols, no backgrounds
+
+                &.desperate {
+                  color: var(--game-danger);
+                }
+
+                &.low-hp {
+                  color: var(--game-warning);
+                }
+
+                &.wealthy {
+                  color: var(--game-gold);
+                }
+              }
+            }
+          }
+
+          // Removed .adventurer-traits - now integrated into class line
+        }
+
+        .adventurer-gold {
+          @include text-data; // Monospace for gold amount
+          font-size: $text-medium;
+          color: var(--game-gold);
+          font-weight: $weight-semibold;
+          line-height: 1.2;
+          flex-shrink: 0;
+        }
+      }
+
+      .adventurer-class {
+        font-size: $text-small;
+        color: var(--text-color-muted);
+        margin-bottom: $spacing-micro;
+        line-height: 1.3;
+
+        // Trait integrated into class line
+        .trait-inline {
+          color: var(--game-info);
+          font-weight: $weight-medium;
+
+          &::before {
+            content: ' · ';
+            color: var(--text-color-muted);
+            opacity: 0.5;
+          }
+        }
+      }
+
+      .hp-section {
+        display: flex;
+        align-items: center;
+        gap: $spacing-tight;
+
+        .hp-bar {
+          flex: 1;
+          height: $spacing-tight;
+          background: color-mix(in srgb, var(--text-color) 8%, transparent);
+          border-radius: $radius-base;
+          overflow: hidden;
+          @include depth-border-standard;
+
+          .hp-fill {
+            height: 100%;
+            background: var(--game-success);
+            transition: width 300ms $easing-standard;
+
+            &.medium {
+              background: var(--game-warning);
+            }
+
+            &.low {
+              background: var(--game-danger);
+              // Removed pulse animation - borders-only
+            }
+          }
+        }
+
+        .hp-text {
+          @include text-data; // Monospace for HP values
+          font-size: $text-small;
+          opacity: 0.9;
+          white-space: nowrap;
+          min-width: 3.5rem;
+          text-align: right;
+        }
+      }
+
+      // Purchase animation overlay - Clean confirmation feedback
+      .purchase-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--game-gold) 12%, transparent);
+        border-radius: $radius-base;
+        animation: purchaseFadeIn $animation-fast $easing-standard;
+        z-index: 10;
+
+        .purchase-amount {
+          @include text-data; // Monospace for gold amount
+          font-size: $text-xlarge;
+          font-weight: $weight-bold;
+          color: var(--game-gold);
+          animation: purchasePopUp 600ms $easing-standard;
+        }
+      }
+    }
+  }
+}
+
+// Removed: desperatePulse, lowHpPulse - borders-only design
+
+// Customer orders are pinned adventurer chits, not interchangeable UI cards.
+.customers-panel {
+  .customer-queue {
+    gap: 9px;
+    padding: 2px 3px 12px;
+
+    .adventurer-card {
+      position: relative;
+      padding: 10px 9px 8px 12px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--cave-frame-light) 58%, #21150a);
+      border-radius: 0;
+      background:
+        linear-gradient(92deg, rgba(255, 255, 255, 0.025), transparent 22%),
+        repeating-linear-gradient(0deg, transparent 0 18px, rgba(226, 212, 186, 0.025) 18px 19px), #241a10;
+      clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.28);
+      transform-origin: 50% 0;
+
+      &::before {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #8e693a;
+        box-shadow:
+          inset 0 -1px rgba(0, 0, 0, 0.45),
+          0 1px 2px rgba(0, 0, 0, 0.5);
+        content: '';
+      }
+
+      &:nth-child(even) {
+        transform: rotate(0.25deg);
+      }
+
+      &:hover {
+        border-color: color-mix(in srgb, var(--cave-ember) 64%, var(--cave-frame));
+      }
+
+      &.selected {
+        border-color: var(--cave-ember);
+        background:
+          linear-gradient(90deg, color-mix(in srgb, var(--cave-ember) 9%, transparent), transparent 30%),
+          repeating-linear-gradient(0deg, transparent 0 18px, rgba(226, 212, 186, 0.025) 18px 19px), #2a1e12;
+        box-shadow:
+          -3px 0 0 color-mix(in srgb, var(--cave-ember) 70%, transparent),
+          0 4px 8px rgba(0, 0, 0, 0.36);
+
+        &::after {
+          position: absolute;
+          right: 7px;
+          bottom: 7px;
+          display: grid;
+          width: 24px;
+          height: 24px;
+          place-items: center;
+          border: 1px solid #57251c;
+          border-radius: 50%;
+          background: #873b2e;
+          color: #dcbf8a;
+          content: '✓';
+          font-size: 10px;
+          transform: rotate(-8deg);
+        }
+      }
+
+      &.desperate {
+        border-color: color-mix(in srgb, var(--game-danger) 70%, var(--cave-frame));
+      }
+
+      .adventurer-header {
+        margin-bottom: 4px;
+
+        .adventurer-left .name-row {
+          padding-left: 6px;
+
+          .class-icon {
+            width: 22px;
+            height: 22px;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            color: var(--cave-ember);
+          }
+
+          .adventurer-name {
+            font-family: 'Uncial Antiqua', Georgia, serif;
+            font-size: 12px;
+            font-weight: 400;
+          }
+        }
+
+        .adventurer-gold {
+          padding-bottom: 2px;
+          border-bottom: 1px solid color-mix(in srgb, var(--cave-ember) 35%, transparent);
+          font-size: 10px;
+        }
+      }
+
+      .adventurer-class {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 3px 5px;
+        color: var(--cave-ink-muted);
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 9px;
+        font-style: italic;
+
+        .potion-chip,
+        .ability-tag {
+          border-radius: 0;
+          font-style: normal;
+        }
+      }
+
+      .speech-bubble {
+        margin: 5px 0 7px;
+        padding: 4px 7px;
+        border: 0;
+        border-top: 1px dotted color-mix(in srgb, var(--cave-ember) 25%, transparent);
+        border-bottom: 1px dotted color-mix(in srgb, var(--cave-ember) 18%, transparent);
+        border-radius: 0;
+        background: rgba(0, 0, 0, 0.13);
+        color: var(--cave-ink-muted);
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 9px;
+        font-style: italic;
+
+        &::before {
+          display: none;
+        }
+      }
+
+      .hp-section {
+        gap: 6px;
+
+        .hp-bar {
+          height: 5px;
+          border: 0;
+          border-radius: 0;
+          background: rgba(0, 0, 0, 0.35);
+        }
+
+        .hp-text {
+          min-width: 3rem;
+          font-size: 9px;
+        }
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customers-panel .customer-queue .adventurer-card:nth-child(even) {
+    transform: none;
+  }
+}

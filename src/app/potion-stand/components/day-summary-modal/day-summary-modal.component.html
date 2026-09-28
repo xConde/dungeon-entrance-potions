@@ -1,0 +1,86 @@
+<div class="summary-overlay" (click)="onOverlayClick()">
+  <div
+    class="summary-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="day-summary-title"
+    tabindex="-1"
+    [appFocusTrap]="true"
+    (click)="stopPropagation($event)"
+  >
+    <h2 id="day-summary-title" class="summary-title">Day {{ data.day }} Summary</h2>
+
+    <!-- Narrative line — the emotional beat -->
+    <p class="summary-narrative" [class]="narrativeClass">{{ narrative }}</p>
+
+    <!-- Economy ledger -->
+    <div class="summary-ledger">
+      <div class="ledger-header">
+        <span class="header-spacer"></span>
+        <span class="header-label">Now</span>
+        <span class="header-label">Today</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-label">Gold</span>
+        <span class="ledger-value coin" [class.negative]="gold < 0">{{ gold }}</span>
+        <span class="ledger-delta" [class.positive]="data.netProfit > 0" [class.negative]="data.netProfit < 0">
+          {{ data.netProfit >= 0 ? '+' : '' }}{{ data.netProfit }}
+        </span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-label">Reputation</span>
+        <span class="ledger-value" [class.negative]="reputation < 0">{{ reputation }}</span>
+        <span
+          class="ledger-delta"
+          [class.positive]="data.reputationChange > 0"
+          [class.negative]="data.reputationChange < 0"
+        >
+          {{ data.reputationChange >= 0 ? '+' : '' }}{{ data.reputationChange }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Outcomes — compact two-column grid -->
+    <div class="summary-outcomes">
+      <div class="outcome-item saved">
+        <span class="outcome-value">{{ data.saves }}</span>
+        <span class="outcome-label">Saved</span>
+      </div>
+      <div class="outcome-item deaths">
+        <span class="outcome-value">{{ data.deaths }}</span>
+        <span class="outcome-label">Deaths</span>
+      </div>
+      @if (data.potionsSold > 0) {
+        <div class="outcome-item">
+          <span class="outcome-value">{{ data.potionsSold }}</span>
+          <span class="outcome-label">Sold</span>
+        </div>
+      }
+      @if (data.bossesDefeated > 0) {
+        <div class="outcome-item boss">
+          <span class="outcome-value">{{ data.bossesDefeated }}</span>
+          <span class="outcome-label">Bosses</span>
+        </div>
+      }
+    </div>
+
+    <!-- Cause-of-death breakdown (only if deaths occurred) -->
+    @if (data.deaths > 0) {
+      <div class="death-breakdown">
+        @if (data.deathsYourFault > 0) {
+          <span class="breakdown-item fault">{{ data.deathsYourFault }} your fault</span>
+        }
+        @if (data.unprepared > 0) {
+          <span class="breakdown-item unprepared">{{ data.unprepared }} unprepared</span>
+        }
+        @if (data.deaths > 0 && data.deathsYourFault === 0 && data.unprepared === 0) {
+          <span class="breakdown-item dungeon">the dungeon claimed them</span>
+        }
+      </div>
+    }
+
+    <button class="summary-continue" (click)="onContinueClick()">Continue to Day {{ nextDay }}</button>
+  </div>
+</div>

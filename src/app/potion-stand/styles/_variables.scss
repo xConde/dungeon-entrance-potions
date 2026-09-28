@@ -1,0 +1,59 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Potion Stand - Component-level CSS variables for theming
+// =============================================================================
+
+:host {
+  @include potion-status-tokens;
+  --game-gold: #f59e0b; // Amber - currency (traditional RPG gold)
+
+  // Computed colors (theme-aware)
+  --text-color-muted: color-mix(in srgb, var(--text-color) 60%, transparent);
+  --hover-color: color-mix(in srgb, var(--text-color) 10%, var(--bg-color));
+
+  // Indicator backgrounds (subtle semantic tints)
+  --indicator-success-bg: color-mix(in srgb, var(--game-success) 12%, transparent);
+  --indicator-success-border: color-mix(in srgb, var(--game-success) 40%, transparent);
+  --indicator-warning-bg: color-mix(in srgb, var(--game-warning) 12%, transparent);
+  --indicator-warning-border: color-mix(in srgb, var(--game-warning) 40%, transparent);
+  --indicator-danger-bg: color-mix(in srgb, var(--game-danger) 12%, transparent);
+  --indicator-danger-border: color-mix(in srgb, var(--game-danger) 40%, transparent);
+  --indicator-gold-bg: rgba(245, 158, 11, 0.12);
+  --indicator-gold-border: rgba(245, 158, 11, 0.5);
+  --indicator-info-bg: color-mix(in srgb, var(--game-info) 12%, transparent);
+  --indicator-info-border: color-mix(in srgb, var(--game-info) 40%, transparent);
+}
+
+// Focus ring — overrides the shell's global Tailwind blue (foreign against
+// parchment/wood/ember) with the project's own torch-amber. Matches
+// --cave-ember's night value: ~8:1 against night cave/tavern surfaces and
+// ~8.2:1 against the shell's near-black night background.
+//
+// Plain `:host { --focus-color }` is not enough: the shell's `.night-mode *`
+// / `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+// EVERY element via the universal selector, at every DOM depth — that beats
+// inheritance outright, regardless of specificity, for any element it can
+// see (Angular content attributes don't shield a global, non-component-scoped
+// selector). `:host *` is required to directly out-specificity that rule for
+// each of this component's own elements, same as the existing
+// tavern-tokens/cave-tokens `:host * {}` pattern elsewhere in this project.
+// This still only reaches potion-stand's own template plus the HOST tags of
+// its child components (Angular encapsulation blocks it from reaching INSIDE
+// a child's own template) — child components with their own
+// var(--focus-color) consumers (game-header, potion-shop, merchant-wares,
+// day-summary-modal) add `--focus-color: inherit;` to their own `:host * {}`
+// block to re-cross that boundary from the correctly-set value on their host.
+:host,
+:host * {
+  --focus-color: #e8a049;
+}
+
+:host-context(.day-mode),
+:host-context(.day-mode) * {
+  // Day mode's amber flips darker (matches --tavern-gold's day value) —
+  // the bright night amber drops under 3:1 on cream parchment/khaki stone.
+  // ~3.5:1 against day-mode cave-stone (the tightest surface), ~4.5:1
+  // against tavern parchment, ~6:1 against the shell's cream background.
+  --focus-color: #845417;
+}

@@ -1,0 +1,1999 @@
+@use '../../styles/design-system' as *;
+@use '../../styles/cave' as *;
+
+// Counter cards sit on fixed near-black walnut rather than the general cave
+// stone. Preserve the shared meanings while lifting the inks enough for the
+// tiny price, stock, forecast, and cut-batch copy used on this surface. The
+// canonical potion-status-tokens triple fails contrast on this surface, so
+// this consumes that same mixin with the brightened values instead of
+// hardcoding a second set of --game-* declarations.
+@mixin counter-status-tokens {
+  @include potion-status-tokens($success: #78ad5b, $warning: #df9e45, $danger: #dc6b58, $info: #9bb5ae);
+}
+
+:host {
+  @include cave-tokens;
+  @include counter-status-tokens;
+  --counter-wood: #2b1b0f;
+  --counter-wood-dark: #160d08;
+  --counter-brass: #b8893e;
+  --counter-paper: #c8ae78;
+  --counter-ink: #2b1d11;
+
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+:host * {
+  @include cave-tokens;
+  @include counter-status-tokens;
+  box-sizing: border-box;
+  // Re-cross the encapsulation boundary for the shell's global focus-color
+  // reset — see the matching comment in game-header.component.scss.
+  --focus-color: inherit;
+}
+
+button {
+  font: inherit;
+}
+
+.potion-shop-panel {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.counter-sign {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-standard;
+  padding: 0 5px 6px;
+  border-bottom: 3px double color-mix(in srgb, var(--counter-brass) 54%, transparent);
+
+  &::after {
+    position: absolute;
+    right: $spacing-tight;
+    bottom: -4px;
+    left: $spacing-tight;
+    height: 1px;
+    background: color-mix(in srgb, var(--cave-ember) 24%, transparent);
+    content: '';
+  }
+
+  &__eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-color-muted);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+}
+
+.panel-title {
+  @include cave-heading;
+  margin: 0;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.serving-badge {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  min-width: 14rem;
+  padding: 4px 9px 4px 13px;
+  border: 1px solid color-mix(in srgb, var(--counter-brass) 50%, transparent);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent 18%),
+    color-mix(in srgb, var(--counter-paper) 82%, var(--counter-wood));
+  color: var(--counter-ink);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  column-gap: $spacing-tight;
+
+  &::before {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    width: 2px;
+    background: color-mix(in srgb, var(--game-danger) 55%, transparent);
+    content: '';
+  }
+
+  &__label {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    opacity: 0.64;
+    text-transform: uppercase;
+  }
+
+  .customer-name {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .customer-budget,
+  .customer-survival {
+    @include text-data;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .customer-budget {
+    grid-column: 2;
+    grid-row: 1;
+    color: #6e4614;
+  }
+
+  .customer-survival {
+    grid-column: 3;
+    grid-row: 1;
+    color: #405d31;
+  }
+
+  .customer-hp-mini {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    height: 3px;
+    overflow: hidden;
+    background: rgba(43, 29, 17, 0.2);
+
+    .hp-bar-mini {
+      display: block;
+      height: 100%;
+      background: #557b3d;
+      transition: width 300ms ease;
+    }
+  }
+
+  .potion-slots-mini {
+    grid-column: 3;
+    grid-row: 3;
+    color: #6e4614;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-align: right;
+
+    .slot-empty {
+      opacity: 0.45;
+    }
+  }
+}
+
+.no-customer-hint {
+  max-width: 11rem;
+  color: var(--text-color-muted);
+  font-size: $text-small;
+  font-style: italic;
+  text-align: right;
+}
+
+.quote-bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 1.1fr) repeat(3, minmax(4.5rem, 0.85fr)) minmax(5.75rem, 1fr);
+  flex-shrink: 0;
+  gap: 0;
+  margin: 4px 5px 2px;
+  border-top: 1px solid color-mix(in srgb, var(--counter-brass) 58%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--counter-brass) 40%, transparent);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 17px, rgba(43, 29, 17, 0.07) 17px 18px),
+    color-mix(in srgb, var(--counter-paper) 88%, var(--counter-wood));
+  color: var(--counter-ink);
+  box-shadow:
+    0 3px 0 var(--counter-wood-dark),
+    0 5px 8px rgba(0, 0, 0, 0.22);
+
+  &::before,
+  &::after {
+    position: absolute;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--counter-brass);
+    box-shadow: inset 0 -1px rgba(0, 0, 0, 0.4);
+    content: '';
+    transform: translateY(-50%);
+  }
+
+  &::before {
+    left: 5px;
+  }
+
+  &::after {
+    right: 5px;
+  }
+
+  &__label,
+  &__consequence {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 3px 10px;
+  }
+
+  &__label {
+    span {
+      font-family: 'Uncial Antiqua', Georgia, serif;
+      font-size: 13px;
+    }
+
+    small {
+      margin-top: 1px;
+      font-size: 10px;
+      font-style: italic;
+      opacity: 0.65;
+    }
+  }
+
+  &__consequence {
+    align-items: flex-end;
+    padding-right: 14px;
+    border-left: 1px dashed rgba(43, 29, 17, 0.3);
+    line-height: 1.05;
+
+    strong {
+      font-size: 13px;
+    }
+
+    span {
+      margin-top: 1px;
+      font-size: 10px;
+      font-style: italic;
+    }
+  }
+}
+
+.quote-option {
+  position: relative;
+  min-height: 2.75rem;
+  padding: 2px 4px;
+  border: 0;
+  border-left: 1px dashed rgba(43, 29, 17, 0.26);
+  background: transparent;
+  color: var(--counter-ink);
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+
+  &__mark {
+    display: block;
+    height: 11px;
+    color: #795726;
+    font-size: 14px;
+    line-height: 11px;
+    transition: transform 180ms cubic-bezier(0.2, 0.85, 0.3, 1.2);
+  }
+
+  > span:not(.quote-option__mark) {
+    display: block;
+    margin-top: 1px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  small {
+    display: block;
+    margin-top: 1px;
+    font-size: 10px;
+    font-style: italic;
+    opacity: 0.62;
+  }
+
+  &::after {
+    position: absolute;
+    right: 6px;
+    bottom: 3px;
+    left: 6px;
+    height: 2px;
+    background: transparent;
+    content: '';
+    transform: scaleX(0.35);
+    transition:
+      background 150ms ease,
+      transform 150ms ease;
+  }
+
+  &:hover::after,
+  &.active::after {
+    background: #76501f;
+    transform: scaleX(1);
+  }
+
+  &:hover {
+    background: linear-gradient(180deg, rgba(118, 80, 31, 0.05), rgba(118, 80, 31, 0.13));
+
+    .quote-option__mark {
+      transform: translateY(-1px) rotate(-7deg) scale(1.08);
+    }
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &.active {
+    background: rgba(79, 47, 19, 0.08);
+  }
+
+  &--mercy.active::after {
+    background: #4d713a;
+  }
+
+  &--gouge.active::after {
+    background: #933f32;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -3px;
+  }
+}
+
+// Owner redo (2026-08-17): in-flow counterpart to styles/_animations.scss's
+// page-level .message-bar toast (still used for merchant phase). Docked
+// between the quote-bar and the Ready Stock shelf, the same slot
+// .panel-status-message already occupies just below — a `position: fixed`
+// overlay can land anywhere depending on window height and never reflows
+// content out of its way; this is a normal-flow block that pushes
+// .potion-grid down instead, so it can't cover the Ready Stock cards or the
+// Hand-over-bottle sell controls by construction. Angular scopes @keyframes
+// per component (emulated encapsulation doesn't rename the block, but it
+// also doesn't let a sibling component's animation-name resolve here), so
+// this reuses the parent's messageToast timing/curve rather than sharing its
+// keyframe declaration.
+// Material follow-up: a first pass used a coloured border-left accent bar —
+// the single most recognisable generic-notification tell, and the same
+// "raw UI accent" mistake the owner rejected in the panel-frame redo.
+// Rebuilt as this counter's own parchment-ticket note instead, matching
+// .loadout-forecast's language directly below: solid parchment fill with
+// the same faint paper grain, a thin neutral border, a torn/angled corner,
+// and the severity accent carried by a border-top line plus the icon glyph
+// — never a side bar. --toast-ink-* are ink-stamp tones tuned specifically
+// for this light fill (color-mix()-ing the sitewide --game-* semantic hues
+// toward --counter-ink), not the raw --game-* values themselves: those are
+// tuned bright enough to read on the counter's dark walnut surfaces
+// elsewhere in this file and measure under 2:1 against a parchment fill —
+// verified via getComputedStyle in Chrome, see the contrast spec in
+// potion-shop.component.spec.ts.
+.counter-toast {
+  --toast-ink: color-mix(in srgb, var(--game-info) 38%, var(--counter-ink));
+
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: $spacing-tight;
+  width: fit-content;
+  max-width: calc(100% - 10px);
+  margin: 2px 5px;
+  padding: 5px $spacing-tight 6px;
+  border: 1px solid rgba(43, 29, 17, 0.42);
+  border-top: 2px solid var(--toast-ink);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 10px, rgba(43, 29, 17, 0.07) 10px 11px), var(--counter-paper);
+  color: var(--counter-ink);
+  font-size: $text-small;
+  clip-path: polygon(0 0, 97% 1px, 100% 88%, 4px 100%);
+  animation: counterToastInOut 5000ms $easing-standard forwards;
+
+  &.message-success {
+    --toast-ink: color-mix(in srgb, var(--game-success) 42%, var(--counter-ink));
+  }
+
+  &.message-warning {
+    --toast-ink: color-mix(in srgb, var(--game-warning) 42%, var(--counter-ink));
+  }
+
+  &.message-error {
+    --toast-ink: color-mix(in srgb, var(--game-danger) 42%, var(--counter-ink));
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--toast-ink);
+    font-size: $text-medium;
+  }
+
+  &__text {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+// COUPLING: this 5000ms MUST match TIMING.MESSAGE_AUTO_HIDE_MS in
+// config/game-config.ts, same pairing as .message-bar's messageToast
+// keyframe in styles/_animations.scss.
+@keyframes counterToastInOut {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  10%,
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+.panel-status-message {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-tight;
+  margin: $spacing-micro $spacing-tight;
+  padding: 5px $spacing-tight;
+  border-top: 1px dotted color-mix(in srgb, var(--game-info) 44%, transparent);
+  border-bottom: 1px dotted color-mix(in srgb, var(--game-info) 32%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--game-info) 8%, transparent), transparent 72%), rgba(0, 0, 0, 0.1);
+  color: var(--text-color-muted);
+  font-size: $text-small;
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.shelf-heading {
+  display: flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $spacing-tight;
+  padding: 5px 8px 3px;
+
+  &__title {
+    color: var(--cave-ember);
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 13px;
+  }
+
+  &__note {
+    overflow: hidden;
+    color: var(--text-color-muted);
+    font-size: 11px;
+    font-style: italic;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.potion-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.2rem, 1fr));
+  align-content: start;
+  flex: 1;
+  gap: 5px;
+  min-height: 0;
+  padding: 5px 5px 13px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: color-mix(in srgb, var(--counter-brass) 62%, #211309) #120b07;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  border-top: 5px solid #3a2413;
+  border-right: 2px solid #211309;
+  border-left: 2px solid #211309;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 18%, rgba(0, 0, 0, 0.08) 80%),
+    repeating-linear-gradient(87deg, #211309 0 20px, #27170c 20px 42px, #1d1008 42px 62px);
+  box-shadow:
+    inset 0 8px 10px rgba(0, 0, 0, 0.52),
+    inset 0 0 0 1px rgba(184, 137, 62, 0.13);
+
+  // Chromium makes an overflowing scroll region keyboard-focusable on its own
+  // (no author tabindex needed) so it can be scrolled with arrow keys. Without
+  // an explicit ring here that stop rendered the browser's native blue "auto"
+  // outline instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-left: 1px solid rgba(184, 137, 62, 0.12);
+    background: #120b07;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 1px solid #2b190d;
+    background: linear-gradient(#7a5630, #4a2e18);
+  }
+
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 8px;
+    border-top: 1px solid rgba(184, 137, 62, 0.36);
+    background: linear-gradient(#4a2d17, #211208);
+    box-shadow: 0 -4px 7px rgba(0, 0, 0, 0.45);
+    content: '';
+    pointer-events: none;
+    z-index: 4;
+  }
+}
+
+.potion-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  min-height: 14.85rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--counter-brass) 34%, #130a05);
+  border-bottom-width: 2px;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.035), transparent 24%), linear-gradient(#1b110b, #100905);
+  color: var(--text-color);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%, 0 4px);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease,
+    transform 160ms ease;
+
+  &::before {
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    width: 46%;
+    height: 3px;
+    background: var(--potion-color);
+    box-shadow: 0 1px 8px color-mix(in srgb, var(--potion-color) 40%, transparent);
+    content: '';
+    opacity: 0.6;
+    transform: translateX(-50%);
+  }
+
+  &:hover:not(.out-of-stock) {
+    z-index: 2;
+    border-color: color-mix(in srgb, var(--potion-color) 60%, var(--counter-brass));
+    box-shadow:
+      inset 0 0 20px color-mix(in srgb, var(--potion-color) 9%, transparent),
+      0 7px 13px rgba(0, 0, 0, 0.42);
+    filter: brightness(1.09);
+    transform: translateY(-2px);
+
+    .potion-bottle {
+      transform: translateY(-4px) rotate(-1.5deg);
+    }
+
+    .bottle-glint {
+      opacity: 0.68;
+      transform: translateX(3px) rotate(6deg);
+    }
+
+    .bottle-bubble--one {
+      animation: bottle-bubble-rise 650ms ease-out both;
+    }
+
+    .bottle-bubble--two {
+      animation: bottle-bubble-rise 650ms ease-out 90ms both;
+    }
+  }
+
+  &.recommended {
+    border-color: color-mix(in srgb, var(--counter-brass) 80%, var(--potion-color));
+    box-shadow:
+      inset 0 0 16px color-mix(in srgb, var(--potion-color) 8%, transparent),
+      0 4px 8px rgba(0, 0, 0, 0.36);
+  }
+
+  // Owner redo (2026-08-17): a watered bottle no longer gets its own
+  // alert-red border/tint — that was one of four simultaneous hazard
+  // signals stacked on a card that's just recording a ledger fact. The
+  // .watered-stamp inside .potion-info is the single marker now.
+
+  &.dilution-pending {
+    border-color: #b86550;
+    box-shadow:
+      inset 0 0 18px rgba(164, 67, 47, 0.12),
+      0 5px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  &.out-of-stock {
+    .potion-bottle,
+    .potion-info,
+    .loadout-forecast {
+      opacity: 0.26;
+      filter: grayscale(0.8);
+    }
+  }
+
+  &.unaffordable:not(.recommended) {
+    .potion-bottle,
+    .potion-info {
+      opacity: 0.48;
+    }
+  }
+}
+
+// Owner redo (2026-08-17): the old .corner-info fused stock count AND price
+// into one token ("on hand / 3 48<coin>") — unreadable at a glance, and the
+// price was already duplicated on the Hand-over-bottle button. Stock now
+// gets its own answer-in-under-a-second marker: a small tally seal, same
+// visual family as .bottle-seal below (a circular ink stamp already
+// attached to this bottle), so it reads as "part of the bottle" rather than
+// a floating HUD chip. Price lives only on the button now (.sell-btn
+// .price-value, near .card-actions below) — where the action is.
+.stock-badge {
+  position: absolute;
+  top: -6px;
+  left: -8px;
+  z-index: 4;
+  display: grid;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--counter-brass) 60%, #1a0f07);
+  border-radius: 9px;
+  background: linear-gradient(#3a2415, #201207);
+  color: var(--counter-paper);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+
+  &.low-stock {
+    border-color: color-mix(in srgb, var(--game-warning) 65%, #1a0f07);
+    color: var(--game-warning);
+  }
+}
+
+// Owner redo (2026-08-17): a watered bottle used to carry a red-filled
+// diagonal ribbon — one of four simultaneous hazard signals on a single
+// card. Replaced with a single quiet in-world marker: a rubber-stamped
+// note across the name/tier label, ink only (no fill), the same muted
+// --game-danger this dark counter already uses for the tiniest copy
+// (see counter-status-tokens above), never a saturated alert red.
+.watered-stamp {
+  position: absolute;
+  // Sits in the gap .potion-card.diluted .potion-name opens up below it
+  // (see that rule) — across the seam between the tier line ("cut batch")
+  // and the stats line ("¼ effect"), never through the effect value or the
+  // headline name.
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  padding: 1px 7px;
+  border: 1.5px solid color-mix(in srgb, var(--game-danger) 46%, transparent);
+  border-radius: 2px;
+  color: color-mix(in srgb, var(--game-danger) 62%, transparent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.potion-bottle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 2.55rem;
+  // Top margin trimmed from 1.4rem so .potion-stats (below) can render its
+  // full two-line height (effect tags + tier note) without the card
+  // overflowing and clipping card-actions at the bottom. Reclaims space
+  // rather than growing the card, per the fixed grid-row budget.
+  margin: 0.25rem auto 2px;
+  filter: drop-shadow(0 5px 3px rgba(0, 0, 0, 0.46));
+  transform-origin: 50% 100%;
+  transition: transform 190ms cubic-bezier(0.2, 0.85, 0.3, 1.2);
+
+  .bottle-cork {
+    z-index: 2;
+    width: 1.05rem;
+    height: 0.34rem;
+    border: 1px solid #5b3b1e;
+    background: repeating-linear-gradient(90deg, #a8783d 0 2px, #8b5d2c 2px 3px);
+  }
+
+  .bottle-neck {
+    z-index: 1;
+    width: 0.86rem;
+    height: 0.45rem;
+    border-right: 1px solid rgba(226, 212, 186, 0.42);
+    border-left: 1px solid rgba(226, 212, 186, 0.42);
+    background: rgba(226, 212, 186, 0.06);
+  }
+
+  .bottle-body {
+    position: relative;
+    width: 100%;
+    // Trimmed from 3rem alongside the bottle's top margin above — reclaims
+    // the height .potion-stats now needs for its full two-line caption.
+    height: 2.65rem;
+    overflow: hidden;
+    border: 1px solid rgba(226, 212, 186, 0.48);
+    border-radius: 16% 16% 42% 42% / 9% 9% 32% 32%;
+    background: rgba(226, 212, 186, 0.055);
+    box-shadow:
+      inset 5px 0 7px rgba(255, 255, 255, 0.04),
+      inset -5px 0 8px rgba(0, 0, 0, 0.18);
+  }
+
+  .liquid-fill {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    left: 2px;
+    border-radius: 0 0 42% 42% / 0 0 30% 30%;
+    opacity: 0.88;
+
+    &::before {
+      position: absolute;
+      top: -2px;
+      right: 0;
+      left: 0;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.22);
+      content: '';
+    }
+  }
+
+  .bottle-glint {
+    position: absolute;
+    top: 18%;
+    left: 20%;
+    z-index: 2;
+    width: 3px;
+    height: 38%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.34);
+    transform: rotate(6deg);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  .bottle-bubble {
+    position: absolute;
+    z-index: 2;
+    width: 3px;
+    height: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 50%;
+
+    &--one {
+      right: 25%;
+      bottom: 28%;
+    }
+
+    &--two {
+      right: 35%;
+      bottom: 45%;
+      width: 2px;
+      height: 2px;
+    }
+  }
+
+  .bottle-seal {
+    position: absolute;
+    right: -3px;
+    bottom: 12px;
+    z-index: 3;
+    display: grid;
+    width: 15px;
+    height: 15px;
+    place-items: center;
+    border: 1px solid rgba(68, 26, 18, 0.72);
+    border-radius: 50%;
+    background: #8d3e31;
+    color: #e2c48d;
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 7px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+// Owner redo (2026-08-17): shared card grid — .card-content is the
+// flexible middle every variant balances against (see the template
+// comment above it). Fills whatever height .card-actions doesn't need and
+// spreads that slack around the bottle/info/ticket group instead of one
+// dead band before the actions row.
+.card-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  width: 100%;
+  justify-content: space-evenly;
+}
+
+// Name + stats zone. position: relative anchors .watered-stamp so it
+// always sits centered on the label regardless of where .card-content's
+// space-evenly distribution puts this block vertically.
+.potion-info {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.potion-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0 4px 2px;
+  line-height: 1;
+  text-align: center;
+
+  // Opens a real gap for .watered-stamp to sit in, between the tier line
+  // ("cut batch") and .potion-stats below — the stamp never sits through
+  // the effect value or the headline name this way. Scoped to diluted
+  // cards only so the ordinary card's rhythm is untouched.
+  .potion-card.diluted & {
+    padding-bottom: 9px;
+  }
+
+  > span {
+    max-width: 100%;
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  small {
+    margin-top: 1px;
+    color: var(--text-color-muted);
+    font-size: 9px;
+    font-style: italic;
+  }
+}
+
+// Owner redo (2026-08-17): was .card-effects — a bordered box (dotted top
+// + bottom rules) for two lines of plain fact. Part of the "boxes within
+// boxes" the counter had stacked up; dropped the border, kept the layout.
+// Effect values stay the brightest ink on the card (they're the reason to
+// buy); the tier note is plain muted copy, diluted or not — never a
+// separate alarm colour.
+.potion-stats {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: center;
+  gap: 2px 5px;
+  width: calc(100% - 10px);
+  min-height: 1.3rem;
+  padding: 3px 2px 0;
+
+  &__value {
+    @include text-data;
+    color: var(--text-color);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  &__note {
+    flex-basis: 100%;
+    color: var(--text-color-muted);
+    font-size: 9px;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+}
+
+// Owner redo (2026-08-17): repositioned off the bottle (was fixed to the
+// card's own top-right corner at a hardcoded 44px, which assumed the
+// bottle always sat at the same height). Now a child of .potion-bottle,
+// so it travels with the art zone under .card-content's flexible layout.
+.recommended-badge {
+  position: absolute;
+  top: -4px;
+  right: -32px;
+  z-index: 5;
+  display: flex;
+  width: 48px;
+  min-height: 34px;
+  padding: 4px 4px 5px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #5c2d20;
+  background: repeating-linear-gradient(0deg, transparent 0 8px, rgba(62, 31, 18, 0.08) 8px 9px), #d8bd83;
+  color: #2d190e;
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.52),
+    inset 0 0 0 1px rgba(255, 238, 193, 0.34);
+  clip-path: polygon(0 0, 100% 2px, 100% calc(100% - 4px), 52% 100%, 0 calc(100% - 3px));
+  line-height: 1;
+  pointer-events: none;
+  transform: rotate(2deg);
+
+  .recommended-label {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .recommended-reason {
+    width: 100%;
+    margin-top: 2px;
+    padding-top: 2px;
+    border-top: 1px solid rgba(45, 25, 14, 0.34);
+    font-size: 7.5px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: normal;
+  }
+}
+
+.loadout-forecast {
+  // Owner redo (2026-08-17): the DIRE tier used the raw --game-danger this
+  // dark counter tunes bright for tiny copy — full alert-red saturation on
+  // a parchment ticket. Same fix as the toast's --toast-ink: mix each
+  // severity toward this ticket's own ink (#21150c) so STEADY/RISKY/DIRE
+  // all read as the same restrained register, just darker or lighter ink,
+  // never a jump to alarm colour. Contrast verified via getComputedStyle
+  // in Chrome, see the spec in potion-shop.component.spec.ts.
+  --forecast-accent: color-mix(in srgb, var(--game-warning) 45%, #21150c);
+
+  display: grid;
+  grid-template-columns: auto 1fr;
+  flex-shrink: 0;
+  align-items: center;
+  width: calc(100% - 8px);
+  min-height: 2.7rem;
+  margin: 2px 4px;
+  // Vertical padding trimmed from 4px, part of the same reclaimed-space
+  // pass as .card-actions and .potion-bottle above.
+  padding: 2px 5px;
+  border: 1px solid rgba(43, 29, 17, 0.42);
+  border-top: 2px solid var(--forecast-accent);
+  background: repeating-linear-gradient(0deg, transparent 0 10px, rgba(43, 29, 17, 0.07) 10px 11px), #d1ba84;
+  color: #21150c;
+  clip-path: polygon(0 0, 97% 1px, 100% 88%, 4px 100%);
+  gap: 3px 5px;
+
+  &.dire {
+    --forecast-accent: color-mix(in srgb, var(--game-danger) 45%, #21150c);
+  }
+
+  &.steady {
+    --forecast-accent: color-mix(in srgb, var(--game-success) 45%, #21150c);
+  }
+
+  .forecast-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .forecast-change {
+    @include text-data;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+
+    strong {
+      font-size: 12px;
+    }
+  }
+
+  .forecast-budget {
+    @include text-data;
+    grid-column: 1 / -1;
+    padding-top: 2px;
+    border-top: 1px dotted rgba(43, 29, 17, 0.42);
+    font-size: 10px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+
+    &.negative {
+      color: #8c2d24;
+    }
+  }
+
+  .forecast-combo {
+    grid-column: 1 / -1;
+    color: #294b42;
+    font-size: 9.5px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+    white-space: normal;
+  }
+}
+
+.card-actions {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 3px;
+  // Vertical padding trimmed from 4px so the secondary (dilute/restock) row
+  // stays inside the card once .potion-stats reclaims its full caption
+  // height above. No margin-top: auto — .card-content's flex: 1 fills the
+  // space above this instead, see the card-content comment.
+  padding: 2px 4px;
+  border-top: 2px solid #382112;
+  background: linear-gradient(#2c1a0e, #1b0f08);
+
+  button {
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-color, #4fc3f7);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.55);
+      opacity: 0.48;
+    }
+  }
+
+  .sell-btn {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3px;
+    width: 100%;
+    padding: 5px 7px;
+    border: 1px solid #bd7e36;
+    border-radius: 0;
+    background: linear-gradient(#784a20, #4a2911);
+    color: #fff0cf;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.05;
+    text-align: left;
+    text-shadow: 0 1px 1px rgba(27, 12, 4, 0.72);
+    transition:
+      background 150ms ease,
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
+
+    // .price-value: relocated here from the old top-left corner chip (see
+    // .stock-badge above) — price now lives only where the action is.
+    strong {
+      @include text-data;
+      color: #ffd47a;
+      font-size: 12px;
+      text-shadow: 0 1px 1px rgba(27, 12, 4, 0.72);
+      white-space: nowrap;
+
+      &.price-increased {
+        color: var(--game-success);
+      }
+
+      &.price-decreased {
+        color: var(--game-danger);
+      }
+    }
+
+    &:hover:not(:disabled):not(.no-stock) {
+      border-color: var(--counter-brass);
+      background: linear-gradient(#956029, #5a3215);
+      box-shadow:
+        inset 0 1px rgba(255, 231, 187, 0.12),
+        0 3px 7px rgba(0, 0, 0, 0.3);
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled):not(.no-stock) {
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.42);
+      transform: translateY(1px);
+    }
+  }
+
+  &__secondary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .dilute-btn,
+  .restock-btn {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 6px;
+    border-radius: 0;
+    background: transparent;
+    font-size: 9.5px;
+    font-weight: 800;
+    transition:
+      background 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      transform 150ms ease;
+  }
+
+  // Owner redo (2026-08-17): the saturated red border + salmon text drew
+  // more eye than the amber .sell-btn primary above it, despite being the
+  // physically smaller control. Desaturated to a quiet warm-neutral outline
+  // at rest — full behavior, tap target and hover feedback unchanged, only
+  // the rest-state colour backs off so "Hand over bottle" reads as the one
+  // decision, not a coin flip between two equally loud buttons. The warmer
+  // red-leaning hover state is kept so the risk cue still lands on interaction.
+  .dilute-btn {
+    // Flat warm taupe, not a diluted red: >=3.24:1 against .card-actions'
+    // dark gradient in both themes (verified in potion-shop.component.spec.ts),
+    // the same floor the original red border only barely cleared.
+    border: 1px solid #7d6a5a;
+    background: rgba(58, 34, 24, 0.16);
+    color: #c9a68f;
+
+    .dilute-label {
+      letter-spacing: 0.025em;
+      white-space: nowrap;
+    }
+
+    &:hover:not(:disabled) {
+      background: rgba(153, 63, 44, 0.24);
+      border-color: #cd7963;
+      color: #ffd0be;
+      transform: translateY(-1px);
+    }
+  }
+
+  .restock-btn {
+    border: 1px solid #8c682f;
+    background: rgba(142, 96, 37, 0.1);
+    color: #f3c66d;
+    justify-content: space-between;
+
+    .restock-label {
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .restock-cost {
+      font-size: 10.5px;
+      white-space: nowrap;
+    }
+
+    &:hover:not(:disabled) {
+      background: rgba(172, 119, 49, 0.2);
+      border-color: #c79648;
+      transform: translateY(-1px);
+    }
+  }
+
+  .inline-dilution-confirm {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.8fr);
+    min-width: 0;
+    gap: 3px;
+    animation: inline-dilution-arm 150ms ease-out backwards;
+
+    &__commit,
+    &__cancel {
+      min-width: 0;
+      min-height: 28px;
+      padding: 4px 5px;
+      border-radius: 0;
+      font-size: 9.5px;
+      font-weight: 800;
+      line-height: 1;
+      transition:
+        background 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease,
+        transform 140ms ease;
+
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+
+    &__commit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      border: 1px solid #c56d55;
+      background: linear-gradient(#8d4132, #59261d);
+      color: #ffe3cd;
+
+      &:hover {
+        border-color: #e08a70;
+        background: linear-gradient(#a34d3b, #672b21);
+      }
+    }
+
+    &__verb {
+      letter-spacing: 0.015em;
+    }
+
+    &__yield {
+      @include text-data;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding-left: 4px;
+      border-left: 1px solid rgba(255, 225, 202, 0.32);
+      color: #ffd5bd;
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    &__arrow {
+      color: #f09a7d;
+      font-size: 9px;
+    }
+
+    &__cancel {
+      border: 1px solid rgba(226, 212, 178, 0.35);
+      background: rgba(226, 212, 178, 0.04);
+      color: #d7c19d;
+
+      &:hover {
+        border-color: rgba(226, 212, 178, 0.58);
+        background: rgba(226, 212, 178, 0.09);
+        color: #f0ddba;
+      }
+    }
+  }
+}
+
+.stillroom-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: $spacing-tight;
+  /* Deliberately theme-independent: a scrim must darken in day mode too. */
+  background: rgba(6, 3, 2, 0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: stillroom-fade 170ms ease-out;
+}
+
+.dilution-stillroom {
+  position: relative;
+  width: min(100%, 36rem);
+  max-height: calc(100% - 12px);
+  padding: 14px;
+  overflow-y: auto;
+  border: 1px solid #8c6231;
+  border-top: 3px solid #a97638;
+  background:
+    radial-gradient(circle at 50% 0, rgba(126, 67, 32, 0.22), transparent 45%),
+    repeating-linear-gradient(92deg, #201109 0 26px, #27150b 26px 51px, #1c0e07 51px 70px);
+  color: #e6d4b2;
+  box-shadow:
+    0 -12px 35px rgba(0, 0, 0, 0.7),
+    inset 0 0 25px rgba(0, 0, 0, 0.5);
+  clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%, 0 7px);
+  animation: stillroom-rise 220ms cubic-bezier(0.2, 0.85, 0.3, 1);
+
+  // Tall stillroom content can overflow on short viewports, which makes
+  // Chromium put this scroll region in the tab order on its own (no author
+  // tabindex needed). Without an explicit ring that stop rendered the
+  // browser's native blue "auto" outline instead of this project's amber
+  // system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -3px;
+  }
+}
+
+.stillroom-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(230, 212, 178, 0.28);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.25);
+  color: #e6d4b2;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  appearance: none;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+
+  &:hover {
+    border-color: rgba(230, 212, 178, 0.58);
+    background: rgba(185, 139, 80, 0.11);
+    color: #f2dfba;
+    transform: rotate(4deg);
+  }
+
+  &:active {
+    transform: rotate(0) scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: 2px;
+  }
+}
+
+.stillroom-heading {
+  padding-right: 34px;
+
+  &__eyebrow {
+    color: #b98b50;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    margin: 2px 0 3px;
+    color: #d99449;
+    font-family: 'Uncial Antiqua', Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+  }
+
+  p {
+    margin: 0;
+    color: #a99778;
+    font-size: 10px;
+    font-style: italic;
+  }
+}
+
+.batch-ritual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 78px;
+  margin: 10px 0;
+  border-top: 1px solid rgba(185, 139, 80, 0.2);
+  border-bottom: 1px solid rgba(185, 139, 80, 0.2);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.ritual-bottle {
+  position: relative;
+  width: 25px;
+  height: 39px;
+  border: 1px solid rgba(230, 212, 178, 0.52);
+  border-radius: 4px 4px 10px 10px;
+  background: rgba(255, 255, 255, 0.04);
+
+  &::before {
+    position: absolute;
+    top: -10px;
+    left: 7px;
+    width: 9px;
+    height: 10px;
+    border: 1px solid rgba(230, 212, 178, 0.52);
+    border-bottom: 0;
+    background: #24150c;
+    content: '';
+  }
+
+  span {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    left: 2px;
+    height: 78%;
+    border-radius: 2px 2px 8px 8px;
+    background: var(--ritual-color);
+    opacity: 0.82;
+  }
+
+  &--cut {
+    width: 22px;
+    height: 35px;
+
+    span {
+      height: 48%;
+      opacity: 0.56;
+    }
+  }
+}
+
+.ritual-pour {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  color: #8eb0b4;
+  text-align: center;
+
+  strong {
+    color: #b98b50;
+    font-size: 18px;
+  }
+
+  .ritual-drop {
+    width: 10px;
+    height: 14px;
+    margin-right: 5px;
+    border-radius: 60% 40% 60% 40%;
+    background: #6e9aa1;
+    transform: rotate(45deg);
+  }
+
+  .ritual-water {
+    grid-column: 1 / -1;
+    font-size: 8px;
+    font-style: italic;
+  }
+}
+
+.ritual-result {
+  display: flex;
+  gap: 7px;
+}
+
+.batch-ledger {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid rgba(185, 139, 80, 0.3);
+  background: repeating-linear-gradient(0deg, transparent 0 16px, rgba(43, 29, 17, 0.07) 16px 17px), #bfa878;
+  color: #2b1d11;
+
+  > div {
+    display: flex;
+    min-width: 0;
+    min-height: 54px;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5px 7px;
+    border-right: 1px dashed rgba(43, 29, 17, 0.3);
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+
+  span {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.64;
+    text-transform: uppercase;
+  }
+
+  strong {
+    margin: 2px 0;
+    font-size: 11px;
+  }
+
+  small {
+    font-size: 8px;
+    font-style: italic;
+    line-height: 1.15;
+  }
+
+  &__danger strong {
+    color: #873628;
+  }
+}
+
+.stillroom-warning {
+  display: grid;
+  grid-template-columns: 21px 1fr;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0;
+  padding: 6px 8px;
+  border: 1px dashed rgba(157, 73, 56, 0.48);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 14px, rgba(157, 73, 56, 0.035) 14px 15px), rgba(157, 73, 56, 0.06);
+  color: #c8ae87;
+  font-size: 10px;
+  line-height: 1.3;
+
+  &::before {
+    display: grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    border: 1px solid #a95d4c;
+    border-radius: 50%;
+    color: #d88772;
+    content: '!';
+    font-size: 12px;
+    font-weight: 700;
+    transform: rotate(-7deg);
+  }
+}
+
+.stillroom-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 6px;
+
+  button {
+    min-height: 44px;
+    padding: 6px 8px;
+    border-radius: 0;
+    cursor: pointer;
+    font-weight: 700;
+    line-height: 1.1;
+    transition:
+      background 150ms ease,
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      color 150ms ease,
+      transform 150ms ease;
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-color, #4fc3f7);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.stillroom-cancel {
+  border: 1px solid rgba(230, 212, 178, 0.32);
+  background: transparent;
+  color: #c8b797;
+
+  &:hover {
+    border-color: rgba(230, 212, 178, 0.56);
+    background: rgba(230, 212, 178, 0.05);
+    color: #ecdbbb;
+    transform: translateY(-1px);
+  }
+}
+
+.stillroom-confirm {
+  border: 1px solid #a34d3c;
+  background: linear-gradient(#7d382e, #512018);
+  color: #f0d8bc;
+
+  small {
+    display: block;
+    margin-top: 2px;
+    font-size: 8px;
+    font-style: italic;
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  &:hover {
+    background: linear-gradient(#93483a, #61271e);
+    border-color: #c76b56;
+    box-shadow:
+      inset 0 1px rgba(255, 226, 204, 0.1),
+      0 4px 9px rgba(0, 0, 0, 0.32);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes bottle-bubble-rise {
+  from {
+    opacity: 0.25;
+    transform: translateY(3px) scale(0.75);
+  }
+
+  55% {
+    opacity: 0.85;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.1);
+  }
+}
+
+@keyframes inline-dilution-arm {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+.potion-tooltip {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 30;
+  width: min(16rem, calc(100% - 20px));
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--counter-brass) 55%, transparent);
+  background: #1a0f08;
+  color: var(--text-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  font-size: $text-small;
+  transform: translateX(-50%);
+
+  strong {
+    color: var(--cave-ember);
+    font-family: 'Uncial Antiqua', Georgia, serif;
+  }
+
+  p {
+    margin: 4px 0 0;
+  }
+
+  .tooltip-price {
+    color: var(--game-gold);
+  }
+
+  .tooltip-warning {
+    color: #d67b67;
+  }
+}
+
+@keyframes stillroom-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes stillroom-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  // The global `*` reduced-motion carve-out (styles/_responsive.scss) is
+  // compiled into PotionStandComponent's own emulated-encapsulation scope,
+  // so its selector never matches elements rendered inside this child
+  // component's template — .counter-toast needs its own override here.
+  .counter-toast {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .stillroom-scrim,
+  .dilution-stillroom,
+  .potion-card {
+    animation: none;
+    transition: none;
+  }
+
+  .potion-card:hover:not(.out-of-stock) .potion-bottle,
+  .potion-card:hover:not(.out-of-stock) .bottle-glint,
+  .potion-card:hover:not(.out-of-stock) .bottle-bubble,
+  .quote-option,
+  .quote-option__mark,
+  .card-actions button,
+  .stillroom-close,
+  .stillroom-actions button,
+  .inline-dilution-confirm {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+  .counter-sign {
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px 4px;
+
+    > div:first-child {
+      min-width: 0;
+    }
+
+    &__eyebrow {
+      display: none;
+    }
+  }
+
+  .panel-title {
+    font-size: 14px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .serving-badge {
+    width: 56%;
+    min-width: 0;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-right: 7px;
+    padding-left: 10px;
+
+    .customer-name {
+      font-size: 12px;
+    }
+  }
+
+  .quote-bar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    &__label,
+    &__consequence {
+      display: none;
+    }
+  }
+
+  .quote-option {
+    min-height: 44px;
+  }
+
+  .panel-status-message {
+    gap: 4px;
+    margin: 2px 4px;
+    padding: 3px 5px;
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .shelf-heading {
+    padding: 4px 6px 2px;
+  }
+}
+
+@media (max-width: 767px) {
+  :host,
+  .potion-shop-panel {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+    overflow: visible;
+  }
+
+  .counter-sign {
+    position: sticky;
+    top: 0;
+    z-index: 8;
+    align-items: center;
+    padding: 6px 8px;
+    background: #160e09;
+
+    &__eyebrow {
+      display: none;
+    }
+  }
+
+  .panel-title {
+    font-size: 14px;
+  }
+
+  .serving-badge {
+    min-width: 0;
+    max-width: 58%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 4px 7px 4px 10px;
+
+    &__label,
+    .customer-survival,
+    .customer-hp-mini,
+    .potion-slots-mini {
+      display: none;
+    }
+
+    .customer-name {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: 10px;
+    }
+
+    .customer-budget {
+      grid-column: 2;
+      grid-row: 1;
+      font-size: 9px;
+    }
+  }
+
+  .no-customer-hint {
+    max-width: 45%;
+    font-size: 9px;
+  }
+
+  .quote-bar {
+    position: sticky;
+    top: 45px;
+    z-index: 7;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 4px;
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.4);
+
+    &__label,
+    &__consequence {
+      display: none;
+    }
+  }
+
+  .quote-option {
+    min-height: 44px;
+
+    &__mark {
+      display: none;
+    }
+
+    small {
+      font-size: 7px;
+    }
+  }
+
+  .shelf-heading {
+    padding: 7px 8px 4px;
+  }
+
+  .potion-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: none;
+    gap: 7px 5px;
+    min-height: auto;
+    padding: 7px 5px 17px;
+    overflow: visible;
+
+    &::after {
+      margin-right: -5px;
+      margin-left: -5px;
+    }
+  }
+
+  .potion-card {
+    min-height: 17rem;
+  }
+
+  .card-actions {
+    .sell-btn {
+      min-height: 44px;
+      font-size: 11px;
+    }
+
+    .dilute-btn,
+    .restock-btn {
+      min-height: 44px;
+      font-size: 9.5px;
+    }
+
+    .inline-dilution-confirm__commit,
+    .inline-dilution-confirm__cancel {
+      min-height: 44px;
+      font-size: 9px;
+    }
+  }
+
+  .stillroom-scrim {
+    position: fixed;
+    z-index: 120;
+    padding: 8px;
+  }
+
+  .dilution-stillroom {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+  }
+
+  .batch-ledger {
+    grid-template-columns: 1fr 1fr;
+
+    > div:nth-child(2) {
+      border-right: 0;
+    }
+
+    > div:nth-child(-n + 2) {
+      border-bottom: 1px dashed rgba(43, 29, 17, 0.3);
+    }
+  }
+}
+
+@media (max-width: 767px) and (max-height: 650px) {
+  .stillroom-scrim {
+    align-items: flex-start;
+    padding-top: 190px;
+  }
+
+  .dilution-stillroom {
+    max-height: calc(100dvh - 265px);
+    padding: 10px;
+  }
+
+  .stillroom-heading {
+    p {
+      display: none;
+    }
+
+    h3 {
+      margin: 1px 0;
+      font-size: 1.05rem;
+    }
+  }
+
+  .batch-ritual {
+    min-height: 42px;
+    margin: 3px 0;
+
+    .ritual-bottle {
+      transform: scale(0.8);
+    }
+  }
+
+  .batch-ledger > div {
+    min-height: 42px;
+    padding: 3px 5px;
+  }
+
+  .stillroom-warning {
+    margin: 4px 0;
+    grid-template-columns: 18px 1fr;
+    gap: 5px;
+    padding: 3px 5px;
+    font-size: 8px;
+
+    &::before {
+      width: 17px;
+      height: 17px;
+      font-size: 10px;
+    }
+  }
+
+  .stillroom-actions {
+    position: static;
+  }
+}

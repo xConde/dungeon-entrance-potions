@@ -1,0 +1,715 @@
+// =============================================================================
+// Customer Queue Component - Customer selection panel
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/cave' as *;
+
+// Component-level CSS variables for theming
+:host {
+  @include cave-tokens; // warm the panel into the torchlit cave palette
+
+  display: block;
+  height: 100%;
+}
+
+// `.night-mode *` / `.day-mode *` override a plain :host token remap per-element;
+// `:host *` re-asserts the cave palette with the specificity to win.
+:host * {
+  @include cave-tokens;
+  // Re-cross the encapsulation boundary: the shell's global `.night-mode *` /
+  // `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+  // every element it can see, INCLUDING elements inside this component's own
+  // template — potion-stand's `:host *` override (styles/_variables.scss)
+  // can only reach as far as this component's own host tag
+  // (<app-customer-queue>), not inside it. `inherit` re-pulls the
+  // correctly-set value from that host.
+  --focus-color: inherit;
+}
+
+.customer-queue-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-title {
+  @include cave-heading;
+  font-size: $text-large;
+  margin-bottom: $spacing-tight;
+  padding-bottom: $spacing-tight;
+  border-bottom: 1px solid color-mix(in srgb, var(--cave-ember) 30%, transparent);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-tight;
+
+  .queue-count {
+    @include text-data;
+    font-size: $text-micro;
+    padding: $spacing-micro $spacing-tight;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: $radius-small;
+    font-weight: $weight-semibold;
+    color: var(--text-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+.customer-queue {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-comfortable;
+  min-height: 0;
+
+  // Chromium makes an overflowing scroll region keyboard-focusable on its own
+  // (no author tabindex needed) so it can be scrolled with arrow keys. Without
+  // an explicit ring here that stop rendered the browser's native blue "auto"
+  // outline instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+}
+
+.adventurer-card {
+  position: relative;
+  padding: $spacing-standard;
+  background: var(--text-area-color);
+  @include depth-border-standard;
+  border-radius: $radius-base;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition:
+    background $animation-standard $easing-standard,
+    border-color $animation-standard $easing-standard,
+    box-shadow $animation-standard $easing-standard,
+    transform $animation-standard $easing-standard;
+  flex-shrink: 0;
+
+  &:hover {
+    background: color-mix(in srgb, var(--game-info) 4%, var(--text-area-color));
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.24);
+    transform: translateY(-2px);
+
+    .class-icon {
+      color: var(--cave-ember);
+      transform: rotate(-5deg) scale(1.06);
+    }
+  }
+
+  // Keyboard focus owns the border. :hover keeps matching while the mouse
+  // rests on a keyboard-focused card, so scoping the border-color swap here
+  // stops it painting a slate-blue ring underneath the amber focus outline.
+  &:hover:not(:focus-visible) {
+    border-color: var(--game-info);
+  }
+
+  &:focus-visible {
+    // Inset, not outset: the queue scrolls with overflow-x: hidden and cards
+    // sit flush against its left/right edges, so an outward outline-offset
+    // got clipped at the container walls. Inset keeps the full ring visible.
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+
+  &.selected {
+    border-color: var(--game-gold);
+    background: color-mix(in srgb, var(--game-gold) 3%, var(--text-area-color));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--game-gold) 28%, transparent),
+      0 4px 8px rgba(0, 0, 0, 0.24);
+  }
+
+  &.desperate {
+    border-color: var(--game-danger);
+  }
+
+  &.low-hp {
+    border-color: var(--game-warning);
+  }
+
+  &.wants-more:not(.selected) {
+    border-top-color: color-mix(in srgb, var(--game-gold) 74%, var(--border-color));
+    box-shadow: inset 0 2px 0 color-mix(in srgb, var(--game-gold) 42%, transparent);
+  }
+}
+
+.adventurer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-tight;
+  gap: $spacing-tight;
+
+  .adventurer-left {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-micro;
+    flex: 1;
+    min-width: 0;
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: $spacing-tight;
+
+      .class-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        color: var(--text-color-muted);
+        background: color-mix(in srgb, var(--text-color) 8%, transparent);
+        border-radius: $radius-base;
+        @include depth-border-subtle;
+        transition:
+          color 170ms ease,
+          transform 170ms cubic-bezier(0.2, 0.85, 0.3, 1.2);
+
+        :host ::ng-deep svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      .adventurer-name {
+        font-size: 17px;
+        font-weight: $weight-semibold;
+        line-height: 1.2;
+      }
+
+      .adventurer-badges {
+        display: flex;
+        gap: $spacing-micro * 2;
+        align-items: center;
+        margin-left: $spacing-micro * 2;
+
+        .badge {
+          font-size: $text-base;
+          font-weight: $weight-regular;
+          line-height: 1;
+
+          &.returning {
+            display: inline-flex;
+            align-items: center;
+            color: var(--game-gold);
+          }
+
+          &.desperate {
+            color: var(--game-danger);
+          }
+
+          &.low-hp {
+            color: var(--game-warning);
+          }
+
+          &.wealthy {
+            color: var(--game-gold);
+          }
+        }
+      }
+    }
+  }
+
+  .adventurer-gold {
+    @include text-data;
+    font-size: $text-medium;
+    color: var(--game-gold);
+    font-weight: $weight-semibold;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+}
+
+.adventurer-class {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-tight;
+  font-size: $text-small;
+  color: var(--text-color-muted);
+  margin-bottom: $spacing-micro;
+  line-height: 1.3;
+
+  .class-info {
+    min-width: 0;
+  }
+
+  .trait-inline {
+    color: var(--game-info);
+    font-weight: $weight-medium;
+
+    &::before {
+      content: ' · ';
+      color: var(--text-color-muted);
+      opacity: 0.5;
+    }
+  }
+
+  // Potion combo chips — inline, right-aligned
+  .potion-slots {
+    display: flex;
+    align-items: center;
+    gap: $spacing-micro * 2;
+    flex-shrink: 0;
+
+    // Owner redo (2026-08-17): squared from $radius-small (3px) to match the
+    // ticket/stamp vocabulary (same 1px corner as .combo-tag in
+    // merchant-tips and .watered-stamp in this project's card system) — the
+    // rounded pill read as a generic Bootstrap badge next to the rest of
+    // this project's inked-tag surfaces.
+    .potion-chip {
+      font-size: $text-micro;
+      font-weight: $weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      line-height: 1;
+      padding: $spacing-micro;
+      border-radius: 1px;
+
+      // Owner redo (2026-08-17): `color: var(--bg-color)` picked its text ink
+      // off the THEME's background, not off each chip's own fixed fill —
+      // backwards reasoning that happened to scrape by at night (near-black
+      // text on saturated color) and failed AA outright in day mode (cream
+      // text on the same saturated color): measured 3.17-3.92:1 across all
+      // five variants, see customer-queue.component.spec.ts. Same
+      // solid-anchor recipe as .combo-tag in merchant-tips.component.scss —
+      // mix each fill 74% toward a fixed dark neutral and pair with one
+      // fixed light ink, so the chip is AA in both themes off a single
+      // rendered value instead of chasing --bg-color.
+      &.filled {
+        color: #f5ecd6;
+        background: color-mix(in srgb, var(--text-color-muted) 68%, #1c1006);
+
+        &.healing {
+          background: color-mix(in srgb, var(--game-success) 68%, #1c1006);
+        }
+
+        &.strength {
+          background: color-mix(in srgb, var(--game-warning) 68%, #1c1006);
+        }
+
+        &.defense {
+          background: color-mix(in srgb, var(--game-info) 68%, #1c1006);
+        }
+
+        &.speed {
+          background: color-mix(in srgb, #8b5cf6 68%, #1c1006);
+        }
+
+        &.luck {
+          background: color-mix(in srgb, #ec4899 68%, #1c1006);
+        }
+      }
+
+      // Owner redo (2026-08-17): --text-color-muted (the dashed chip's ink)
+      // measured 3.20:1 in day mode against the card's own backdrop — too
+      // close to its own tan card fill to read as a subtle hint. Full
+      // --text-color has enough headroom against this card in both themes;
+      // it's the same "muted -> full ink" swap this component's tooltip/copy
+      // already uses when a hint needs to stay legible over its own surface.
+      &.empty {
+        color: var(--text-color);
+        border: 1px dashed var(--text-color);
+        animation: slotPulse 2s ease-in-out infinite;
+      }
+    }
+  }
+
+  .ability-tag {
+    font-size: $text-micro;
+    color: var(--game-info, #4fc3f7);
+    opacity: 0.7;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &::before {
+      content: '✦ ';
+      opacity: 0.6;
+    }
+  }
+}
+
+// Sprint 12: Scroll dots hidden on desktop, shown only in mobile media query
+.scroll-dots {
+  display: none;
+}
+
+// Mobile: horizontal scrolling row of compact adventurer cards
+@media (max-width: 767px) {
+  // Sprint 7: Break the height:100% chain — parent has no fixed height on mobile,
+  // so height:100% resolves to 0. Use auto to size from content instead.
+  :host {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    overflow: hidden;
+    flex-shrink: 0; // Don't shrink below content — parent .customers-panel scrolls the overflow
+  }
+
+  .customer-queue-panel {
+    height: auto;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden; // Definitive clip point for horizontal scroll carousel
+    background: color-mix(in srgb, var(--surface-alt, rgba(0, 0, 0, 0.3)) 30%, transparent);
+    padding: 8px;
+    box-sizing: border-box;
+  }
+
+  // Sprint 44: Compact combo signal on mobile
+  .combo-signal {
+    font-size: 11px;
+    padding: 4px 8px;
+    max-width: 200px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: nowrap;
+  }
+
+  // Vertical stack — all customers visible at once
+  .customer-queue {
+    flex-direction: column;
+    flex: none;
+    height: auto;
+    min-height: 0;
+    max-width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .adventurer-card {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    padding: 6px 8px 8px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+
+    &.selected {
+      border-width: 2px;
+      background: color-mix(in srgb, var(--game-gold, #f59e0b) 8%, transparent);
+      box-shadow: 0 0 0 1px var(--game-gold, #f59e0b);
+    }
+
+    .adventurer-header {
+      margin-bottom: 4px;
+    }
+
+    .adventurer-name {
+      font-size: 13px;
+    }
+
+    .adventurer-class {
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .speech-bubble {
+      font-size: 11px;
+      padding: 2px 6px;
+      margin-bottom: 2px;
+    }
+
+    .hp-section {
+      margin-top: 4px;
+
+      .hp-bar {
+        height: 6px;
+      }
+
+      .hp-text {
+        font-size: 10px;
+      }
+    }
+
+    .adventurer-class .potion-slots .potion-chip {
+      font-size: 9px;
+      padding: 1px 3px;
+    }
+
+    .purchase-overlay {
+      z-index: 20;
+    }
+  }
+
+  .empty-state {
+    min-height: 60px;
+    flex-grow: 0; // Prevent expanding to fill carousel height
+    padding: 12px;
+    font-size: 13px;
+
+    p {
+      margin: 0 0 4px;
+    }
+
+    .hint {
+      font-size: 11px;
+      margin-top: 4px;
+    }
+  }
+
+  // Sprint 11: Touch feedback on tap
+  .adventurer-card:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+
+  // Pagination dots hidden — all cards visible in vertical stack
+  .scroll-dots {
+    display: none;
+  }
+}
+
+@keyframes slotPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.speech-bubble {
+  font-size: $text-small;
+  color: var(--text-color-muted, #888);
+  font-style: italic;
+  padding: $spacing-micro 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: $spacing-micro;
+}
+
+.hp-section {
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+
+  .hp-bar {
+    flex: 1;
+    height: $spacing-tight;
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+    border-radius: $radius-base;
+    overflow: hidden;
+    @include depth-border-standard;
+
+    .hp-fill {
+      height: 100%;
+      background: var(--game-success);
+      transition: width 300ms $easing-standard;
+
+      &.medium {
+        background: var(--game-warning);
+      }
+
+      &.low {
+        background: var(--game-danger);
+      }
+    }
+  }
+
+  .hp-text {
+    @include text-data;
+    font-size: $text-small;
+    opacity: 0.9;
+    white-space: nowrap;
+    min-width: 3.5rem;
+    text-align: right;
+  }
+}
+
+.purchase-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--game-gold) 12%, transparent);
+  border-radius: $radius-base;
+  animation: purchaseFadeIn $animation-fast $easing-standard;
+  z-index: 10;
+
+  .purchase-amount {
+    @include text-data;
+    font-size: $text-xlarge;
+    font-weight: $weight-bold;
+    color: var(--game-gold);
+    animation: purchasePopUp 600ms $easing-standard;
+  }
+}
+
+// Combo smoke signal — floats above the panel, rises upward
+.combo-signal {
+  position: absolute;
+  top: $spacing-standard;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: comboSignalRise 1.4s ease-out forwards;
+
+  --smoke-color: var(--text-color-muted);
+
+  &.smoke-berserker {
+    --smoke-color: #d32f2f;
+  }
+
+  &.smoke-ironhide {
+    --smoke-color: #2e7d32;
+  }
+
+  &.smoke-warlord {
+    --smoke-color: #f59e0b;
+  }
+
+  .combo-label {
+    font-size: $text-small;
+    font-weight: $weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    color: var(--smoke-color);
+    text-shadow: 0 0 10px var(--smoke-color);
+    animation: combo-pulse 0.6s ease-out;
+  }
+
+  // Vertical smoke trail below the text
+  &::after {
+    content: '';
+    width: 3px;
+    height: 30px;
+    background: linear-gradient(to bottom, var(--smoke-color), transparent);
+    filter: blur(3px);
+    margin-top: 2px;
+  }
+}
+
+@keyframes combo-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes comboSignalRise {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: $spacing-major $spacing-comfortable;
+  opacity: 0.5;
+  font-size: $text-base;
+
+  p {
+    margin: 0;
+  }
+
+  .hint {
+    font-size: $text-small;
+    margin-top: $spacing-tight;
+  }
+}
+
+@keyframes purchaseFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes purchasePopUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Phase 4c — reduced-motion guards. Parent SCSS's universal-selector guard
+// stops at this component's encapsulation boundary, so we repeat it for the
+// motion-heavy classes here. Targets match the actual animated classes
+// (re-audited post-merge):
+//   .potion-chip.empty               → slotPulse
+//   .purchase-overlay                → purchaseFadeIn
+//   .purchase-overlay .purchase-amount → purchasePopUp
+//   .combo-signal                    → comboSignalRise
+//   .combo-signal .combo-label       → combo-pulse
+@media (prefers-reduced-motion: reduce) {
+  .potion-chip.empty,
+  .purchase-overlay,
+  .purchase-overlay .purchase-amount,
+  .combo-signal,
+  .combo-signal .combo-label {
+    animation: none !important;
+  }
+
+  .adventurer-card,
+  .adventurer-card .class-icon {
+    transition: none !important;
+  }
+
+  .adventurer-card:hover {
+    transform: none;
+
+    .class-icon {
+      transform: none;
+    }
+  }
+}

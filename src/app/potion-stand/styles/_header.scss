@@ -1,0 +1,253 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Game Header - Fixed context bar (Day, Time, Stats)
+// Critical: All numbers use monospace for alignment
+// =============================================================================
+
+.game-header {
+  padding: $spacing-tight $spacing-major; // Symmetric horizontal padding
+  @include depth-border-standard;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  margin-bottom: $spacing-tight;
+  flex-shrink: 0;
+
+  // Row 1: Title + Day/Time + Controls
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-tight;
+
+    .game-title {
+      font-size: $text-xlarge;
+      margin: 0;
+      color: var(--text-color);
+      font-weight: $weight-semibold;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: $spacing-comfortable;
+
+      .time-display {
+        display: flex;
+        align-items: center;
+        gap: $spacing-tight;
+        font-size: $text-base;
+
+        .day-info {
+          @include text-data; // Monospace for day number
+          font-weight: $weight-semibold;
+          color: var(--game-info);
+        }
+
+        .time-info {
+          opacity: 0.7;
+          font-size: $text-small;
+        }
+      }
+
+      .controls {
+        display: flex;
+        gap: $spacing-micro;
+
+        .control-btn {
+          padding: $spacing-micro $spacing-tight;
+          background: transparent;
+          border: 1px solid var(--border-color);
+          color: var(--text-color);
+          border-radius: $radius-base;
+          cursor: pointer;
+          font-size: $text-small;
+          transition: all $animation-fast $easing-standard;
+
+          &:hover {
+            border-color: var(--game-info);
+          }
+
+          &:active {
+            opacity: 0.8;
+          }
+
+          &.speed-btn {
+            @include text-data; // Monospace for speed indicator
+            min-width: 2.5rem;
+
+            &.speed-1x {
+              border-color: var(--border-color);
+            }
+
+            &.speed-2x {
+              border-color: var(--game-warning);
+              color: var(--game-warning);
+            }
+
+            &.speed-3x {
+              border-color: var(--game-danger);
+              color: var(--game-danger);
+              // Removed pulse animation - borders-only, no effects
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Row 2: Day Progress Bar with Guilt Indicator
+  .time-progress-container {
+    margin: 0 0 $spacing-tight;
+
+    .time-progress-bar {
+      position: relative;
+      height: $spacing-comfortable + $spacing-micro; // 20px
+      background: var(--text-area-color);
+      @include depth-border-standard;
+      border-radius: $radius-base $radius-base 0 0; // Round top only when guilt bar present
+      overflow: hidden;
+
+      .time-progress-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: var(--game-warning); // Single color, no gradient
+        transition: width 500ms $easing-standard;
+        opacity: 0.2;
+      }
+
+      .time-segments {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        height: 100%;
+        z-index: 1;
+
+        .time-segment {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: $text-micro;
+          font-weight: $weight-medium;
+          color: var(--text-color-muted);
+          border-right: 1px solid var(--border-color);
+          transition: all $animation-standard $easing-standard;
+
+          &:last-child {
+            border-right: none;
+          }
+
+          &.active {
+            background: color-mix(in srgb, var(--game-warning) 12%, transparent);
+            color: var(--text-color);
+            font-weight: $weight-bold;
+          }
+        }
+      }
+    }
+
+    // Guilt bar - stacked under time bar, always present (fades with opacity)
+    .guilt-bar-stacked {
+      height: $spacing-micro; // 4px - thin accent bar
+      background: color-mix(in srgb, var(--text-color) 6%, transparent);
+      border: 1px solid var(--border-color);
+      border-top: none; // Joins seamlessly with time bar
+      border-radius: 0 0 $radius-base $radius-base;
+      overflow: hidden;
+      opacity: 0;
+      transition:
+        opacity $animation-standard $easing-standard,
+        border-color $animation-standard $easing-standard;
+
+      .guilt-fill {
+        height: 100%;
+        background: var(--game-danger);
+        opacity: 0.6;
+        transition:
+          width 500ms $easing-standard,
+          opacity $animation-standard $easing-standard;
+      }
+
+      // Visible when guilt > 10
+      &.visible {
+        opacity: 1;
+      }
+
+      // Enhanced visibility at high guilt
+      &.high {
+        .guilt-fill {
+          opacity: 0.85;
+        }
+      }
+
+      // Critical guilt - full intensity + border tint
+      &.critical {
+        border-color: color-mix(in srgb, var(--game-danger) 40%, var(--border-color));
+
+        .guilt-fill {
+          opacity: 1;
+        }
+      }
+    }
+  }
+
+  // Row 3: Stats Bar - ALL values monospace for alignment
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: $spacing-standard;
+    flex-wrap: wrap;
+    max-width: 100%;
+    margin: 0 auto;
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: $spacing-micro $spacing-tight;
+      min-width: 3rem;
+      user-select: none;
+
+      .stat-value {
+        @include text-data; // MONOSPACE for all stat values
+        font-size: $text-medium;
+        font-weight: $weight-bold;
+      }
+
+      .stat-label {
+        font-size: $text-micro;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      &.death-counter .stat-value {
+        color: var(--game-danger);
+      }
+
+      &.saved-counter .stat-value {
+        color: var(--game-success);
+      }
+
+      &.reputation-bad .stat-value {
+        color: var(--game-danger);
+      }
+
+      &.reputation-good .stat-value {
+        color: var(--game-success);
+      }
+
+      &.profit-positive .stat-value {
+        color: var(--game-success);
+      }
+
+      &.profit-negative .stat-value {
+        color: var(--game-danger);
+      }
+    }
+  }
+}

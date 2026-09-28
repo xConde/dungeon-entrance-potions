@@ -1,0 +1,593 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Dungeon Panel - Right column (Output zone)
+// Real-time activity feed showing dungeon outcomes
+// =============================================================================
+
+.dungeon-panel {
+  // Active adventurers - compact, max 3 visible then scroll
+  .dungeon-adventurers {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-micro;
+    margin-bottom: $spacing-tight;
+    max-height: 7.5rem; // ~3 compact rows
+    overflow-y: auto;
+
+    .dungeon-adventurer {
+      display: flex;
+      align-items: center;
+      gap: $spacing-tight;
+      padding: $spacing-micro $spacing-tight;
+      font-size: $text-small;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .name {
+        flex: 1;
+        font-weight: $weight-medium;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status {
+        @include text-data;
+        font-size: 9px;
+        text-transform: uppercase;
+        font-weight: $weight-semibold;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+
+        // Status colors - meaningful, text only
+        &.exploring {
+          color: var(--game-info);
+        }
+        &.fighting {
+          color: var(--game-warning);
+        }
+        &.looting {
+          color: var(--game-gold);
+        }
+        &.entering {
+          color: var(--text-color-muted);
+        }
+        &.dead {
+          color: var(--game-danger);
+        }
+      }
+
+      .survival-indicator {
+        display: flex;
+        align-items: center;
+        gap: $spacing-micro;
+
+        .survival-bar {
+          width: 2rem;
+          height: 3px;
+          background: color-mix(in srgb, var(--text-color) 15%, transparent);
+          border-radius: 1px;
+          overflow: hidden;
+
+          &.good {
+            background: var(--game-success);
+          }
+
+          &.warning {
+            background: var(--game-warning);
+          }
+
+          &.danger {
+            background: var(--game-danger);
+          }
+        }
+
+        .survival-percent {
+          @include text-data;
+          font-size: $text-micro;
+          min-width: 1.75rem;
+          text-align: right;
+          color: var(--text-color-muted);
+        }
+      }
+    }
+  }
+
+  .dungeon-log {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-micro;
+    min-height: 0;
+
+    .log-entry {
+      --entry-ink: var(--border-color);
+
+      display: flex;
+      align-items: flex-start;
+      gap: $spacing-tight;
+      padding: $spacing-tight $spacing-standard;
+      border-top: 2px solid var(--entry-ink);
+      font-size: $text-small;
+      flex-shrink: 0;
+      user-select: none;
+
+      // Severity is inked across the top edge like a ruled log entry, rather
+      // than using the generic coloured status rail pattern.
+      &.info {
+        --entry-ink: var(--game-info);
+      }
+      &.warning {
+        --entry-ink: var(--game-warning);
+      }
+      &.success {
+        --entry-ink: var(--game-success);
+      }
+      &.danger {
+        --entry-ink: var(--game-danger);
+      }
+
+      .log-time {
+        @include text-data;
+        font-size: $text-micro;
+        color: var(--text-color-muted);
+        min-width: 2.5rem;
+        flex-shrink: 0;
+      }
+
+      .log-icon {
+        font-size: $text-small;
+        flex-shrink: 0;
+        color: var(--game-danger);
+        line-height: 1;
+      }
+
+      .log-message {
+        flex: 1;
+        line-height: 1.4;
+        color: var(--text-color);
+
+        // Bold adventurer names
+        ::ng-deep strong {
+          font-weight: $weight-semibold;
+
+          &.clickable-name {
+            cursor: pointer;
+            user-select: none;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Removed: lowStockPulse, warningPulse, dangerPulse - borders-only design
+
+// The activity feed reads as chalk marks descending a stone shaft. The spine
+// gives every outcome a physical place without turning the log into more cards.
+.dungeon-panel {
+  .dungeon-activity-panel {
+    position: relative;
+  }
+
+  .dungeon-adventurers {
+    gap: 0;
+    margin: 0 2px 10px;
+    border-top: 1px solid color-mix(in srgb, var(--cave-frame-light) 28%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--cave-frame-light) 28%, transparent);
+    background: rgba(0, 0, 0, 0.15);
+
+    .dungeon-adventurer {
+      min-height: 28px;
+      padding: 4px 7px;
+      border-bottom: 1px dotted color-mix(in srgb, var(--cave-frame-light) 24%, transparent);
+      font-family: Georgia, 'Times New Roman', serif;
+
+      .name {
+        font-size: 10px;
+      }
+
+      .status {
+        font-size: 7px;
+        letter-spacing: 0.08em;
+      }
+    }
+  }
+
+  .dungeon-log {
+    position: relative;
+    gap: 0;
+    padding: 2px 0 14px 10px;
+
+    &::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 13px;
+      width: 1px;
+      background: linear-gradient(var(--cave-ember), var(--cave-frame) 28%, transparent);
+      content: '';
+      opacity: 0.46;
+    }
+
+    .log-entry {
+      position: relative;
+      display: grid;
+      grid-template-columns: 2.3rem 1fr;
+      gap: 2px 7px;
+      min-height: 32px;
+      padding: 6px 6px 6px 14px;
+      border: 0;
+      border-bottom: 1px dotted color-mix(in srgb, var(--cave-frame-light) 18%, transparent);
+      background: transparent;
+      font-family: Georgia, 'Times New Roman', serif;
+
+      &::before {
+        position: absolute;
+        top: 11px;
+        left: 1px;
+        width: 6px;
+        height: 6px;
+        border: 1px solid var(--cave-frame-light);
+        border-radius: 50%;
+        background: #12110f;
+        content: '';
+      }
+
+      &.success::before {
+        border-color: var(--game-success);
+        background: color-mix(in srgb, var(--game-success) 45%, #12110f);
+      }
+
+      &.warning::before {
+        border-color: var(--game-warning);
+      }
+
+      &.danger::before {
+        border-color: var(--game-danger);
+        background: color-mix(in srgb, var(--game-danger) 38%, #12110f);
+      }
+
+      .log-time {
+        padding-top: 1px;
+        font-size: 8px;
+        font-style: italic;
+      }
+
+      .log-icon {
+        position: absolute;
+        top: 7px;
+        right: 4px;
+        opacity: 0.72;
+      }
+
+      .log-message {
+        font-size: 9px;
+        line-height: 1.35;
+      }
+
+      .event-detail {
+        grid-column: 2;
+        color: var(--cave-ink-muted);
+        font-size: 8px;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+// =============================================================================
+// Merchant Phase - Morning shopping interface
+// =============================================================================
+
+.merchant-wares-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+  flex: 1;
+  overflow-y: auto;
+
+  .ware-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-standard;
+    background: var(--text-area-color);
+    @include depth-border-standard;
+    border-radius: $radius-base;
+    transition: border-color $animation-standard $easing-standard;
+
+    &:hover:not(.sold-out) {
+      border-color: var(--game-info);
+    }
+
+    &.sold-out {
+      opacity: 0.4;
+    }
+
+    .ware-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-micro;
+
+      .ware-name {
+        font-size: $text-base;
+        font-weight: $weight-semibold;
+        color: var(--text-color);
+      }
+
+      .ware-stock {
+        @include text-data; // Monospace for stock count
+        font-size: $text-micro;
+        color: var(--text-color-muted);
+      }
+    }
+
+    .buy-btn {
+      @include button-ghost-to-solid(var(--border-color), var(--game-gold), white);
+      padding: $spacing-tight $spacing-standard;
+      font-size: $text-small;
+      font-weight: $weight-semibold;
+      cursor: pointer;
+
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .bulk-buy-row {
+    margin-top: auto;
+    padding-top: $spacing-tight;
+
+    .bulk-btn {
+      @include button-ghost-to-solid(var(--game-gold), var(--game-gold), white);
+      width: 100%;
+      padding: $spacing-standard $spacing-comfortable;
+      font-size: $text-base;
+      font-weight: $weight-semibold;
+      cursor: pointer;
+
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Merchant Inventory Display (center panel during merchant phase)
+.merchant-inventory {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-comfortable;
+  flex: 1;
+
+  .inventory-summary {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-tight;
+
+    .inventory-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: $spacing-standard;
+      background: var(--text-area-color);
+      @include depth-border-standard;
+      border-radius: $radius-base;
+
+      .inv-label {
+        font-size: $text-base;
+        color: var(--text-color);
+      }
+
+      .inv-count {
+        @include text-data; // Monospace for inventory counts
+        font-size: $text-large;
+        font-weight: $weight-bold;
+        color: var(--text-color);
+        min-width: 2rem;
+        text-align: right;
+      }
+    }
+  }
+
+  .shop-status {
+    padding: $spacing-standard;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    @include depth-border-standard;
+    border-radius: $radius-base;
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: $spacing-micro 0;
+      font-size: $text-base;
+
+      &.hint {
+        margin-top: $spacing-tight;
+        padding-top: $spacing-tight;
+        border-top: 1px solid var(--border-color);
+        font-size: $text-small;
+        color: var(--text-color-muted);
+      }
+
+      .gold-value {
+        @include text-data; // Monospace for gold amount
+        color: var(--game-gold);
+        font-weight: $weight-semibold;
+      }
+    }
+  }
+
+  .open-shop-btn {
+    width: 100%;
+    padding: $spacing-comfortable $spacing-generous;
+    margin-top: auto;
+    background: var(--text-color);
+    border: none;
+    border-radius: $radius-base;
+    color: var(--bg-color);
+    font-size: $text-large;
+    font-weight: $weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: opacity $animation-standard $easing-standard;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+}
+
+// Merchant Tips (right panel during merchant phase)
+.merchant-tips {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+  flex: 1;
+
+  .tip-section {
+    padding: $spacing-tight $spacing-standard;
+    background: var(--text-area-color);
+    @include depth-border-standard;
+    border-radius: $radius-base;
+
+    .tip-title {
+      margin: 0 0 $spacing-tight;
+      font-size: $text-small;
+      font-weight: $weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-color-muted);
+    }
+
+    .tip-text {
+      margin: 0;
+      font-size: $text-base;
+      color: var(--text-color);
+      line-height: 1.4;
+    }
+
+    &.stats {
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: $spacing-micro 0;
+        font-size: $text-base;
+        color: var(--text-color);
+
+        .stat-value {
+          @include text-data; // Monospace for stat values
+          font-weight: $weight-semibold;
+
+          &.good {
+            color: var(--game-success);
+          }
+
+          &.bad {
+            color: var(--game-danger);
+          }
+
+          &.gold {
+            color: var(--game-gold);
+          }
+        }
+      }
+    }
+
+    // Upgrades section - Permanent recipe improvements
+    &.upgrades {
+      .upgrade-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-micro;
+      }
+
+      .upgrade-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $spacing-tight $spacing-standard;
+        background: color-mix(in srgb, var(--text-color) 2%, transparent);
+        @include depth-border-standard;
+        border-radius: $radius-base;
+        transition: border-color $animation-standard $easing-standard;
+
+        &:hover:not(.maxed) {
+          border-color: var(--game-info);
+        }
+
+        &.maxed {
+          background: color-mix(in srgb, var(--game-gold) 5%, transparent);
+          border-color: var(--game-gold);
+        }
+
+        .upgrade-info {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-micro;
+
+          .upgrade-name {
+            font-size: $text-base;
+            font-weight: $weight-semibold;
+            color: var(--text-color);
+          }
+
+          .upgrade-tier {
+            @include text-data;
+            font-size: $text-micro;
+            font-weight: $weight-semibold;
+            color: var(--text-color-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+        }
+
+        .upgrade-btn {
+          @include button-ghost-to-solid(var(--game-gold), var(--game-gold), white);
+          padding: $spacing-tight $spacing-standard;
+          font-size: $text-small;
+          font-weight: $weight-semibold;
+          cursor: pointer;
+
+          &:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+          }
+        }
+
+        .maxed-badge {
+          font-size: $text-micro;
+          font-weight: $weight-bold;
+          color: var(--game-gold);
+          padding: $spacing-micro $spacing-tight;
+          background: color-mix(in srgb, var(--game-gold) 12%, transparent);
+          border: 1px solid var(--game-gold);
+          border-radius: $radius-small;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+      }
+    }
+  }
+}

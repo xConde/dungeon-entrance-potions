@@ -1,0 +1,112 @@
+<header class="game-header">
+  <!-- Row 1: Title left-aligned, Day/Time right-aligned -->
+  <div class="header-row">
+    <div class="game-wordmark">
+      <span class="game-kicker">Open at the last safe door</span>
+      <h1 class="game-title">Dungeon Entrance Potions</h1>
+    </div>
+    <div class="header-right">
+      <div class="time-display">
+        <span class="day-info">Day {{ day }}</span>
+        @if (day >= 25) {
+          <span class="final-week-badge">FINAL WEEK</span>
+        }
+        <span class="time-info">{{ timeOfDay }}</span>
+      </div>
+      <div class="controls">
+        <button
+          class="control-btn"
+          (click)="onTogglePause()"
+          [disabled]="pauseLocked"
+          [attr.aria-label]="
+            pauseLocked ? 'Game paused while a decision is open' : isPaused ? 'Resume game' : 'Pause game'
+          "
+        >
+          <span class="btn-icon" [innerHTML]="getIconSvg(isPaused ? 'play' : 'pause')"></span>
+        </button>
+        <button
+          class="control-btn speed-btn"
+          (click)="onChangeSpeed()"
+          [class.speed-1x]="gameSpeed === 1"
+          [class.speed-2x]="gameSpeed === 2"
+          [class.speed-3x]="gameSpeed === 3"
+          [attr.aria-label]="'Game speed: ' + gameSpeed + 'x'"
+        >
+          {{ gameSpeed }}x
+        </button>
+        <button
+          class="control-btn audio-btn"
+          (click)="toggleAudio.emit()"
+          [attr.aria-label]="audioEnabled ? 'Mute audio' : 'Unmute audio'"
+        >
+          <span class="btn-icon" [innerHTML]="getIconSvg(audioEnabled ? 'speaker-high' : 'speaker-slash')"></span>
+        </button>
+        <button class="control-btn tutorial-btn" aria-label="How to play" (click)="openTutorial.emit()">
+          <span class="btn-icon" aria-hidden="true" [innerHTML]="getIconSvg('info')"></span>
+        </button>
+        <button class="control-btn help-btn" aria-label="Keyboard shortcuts" (click)="openHelp.emit()">
+          <span class="btn-icon help-btn-icon" aria-hidden="true">?</span>
+        </button>
+        @if (canCloseDay) {
+          <button
+            class="control-btn close-day-btn"
+            type="button"
+            [disabled]="closeDayLocked"
+            aria-label="Close shop and end the day early"
+            (click)="requestCloseDay.emit()"
+          >
+            <span class="close-sign" aria-hidden="true">Closed</span>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Day Progress Bar with Guilt Indicator -->
+  <div class="time-progress-container">
+    <div class="time-progress-bar">
+      <div class="time-progress-fill" [style.width.%]="progressPercent"></div>
+      <div class="time-segments">
+        <div class="time-segment" [class.active]="timeOfDay === 'Morning'">Morning</div>
+        <div class="time-segment" [class.active]="timeOfDay === 'Afternoon'">Afternoon</div>
+        <div class="time-segment" [class.active]="timeOfDay === 'Evening'">Evening</div>
+        <div class="time-segment" [class.active]="timeOfDay === 'Night'">Night</div>
+      </div>
+    </div>
+    <!-- Guilt bar - always rendered, fades with opacity -->
+    <div class="guilt-bar-stacked" [class.visible]="guilt > 10" [class.high]="guilt > 50" [class.critical]="guilt > 75">
+      <div class="guilt-fill" [style.width.%]="guiltPercent"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Stats -->
+  <div class="stats-bar">
+    <div class="stat" [class.gold-negative]="gold < 0">
+      <span class="stat-value coin">{{ gold }}</span>
+    </div>
+    <div class="stat" [class]="netProfit >= 0 ? 'profit-positive' : 'profit-negative'">
+      <span class="stat-value coin">{{ netProfit >= 0 ? '+' : '' }}{{ netProfit }}</span>
+      <span class="stat-label">Today</span>
+    </div>
+    <div class="stat" [class]="getReputationClass()">
+      <span class="stat-value">{{ reputation }}</span>
+      <span class="stat-label">Rep</span>
+    </div>
+    <div class="stat death-counter">
+      <span class="stat-value">{{ deathCount }}</span>
+      <span class="stat-label">Deaths</span>
+    </div>
+    <div class="stat saved-counter">
+      <span class="stat-value">{{ savedCount }}</span>
+      <span class="stat-label">Saved</span>
+    </div>
+    <div class="stat">
+      @if (deathCount + savedCount > 0) {
+        <span class="stat-value">{{ survivalRate.toFixed(0) }}%</span>
+      } @else {
+        <span class="stat-value muted">--</span>
+      }
+      <span class="stat-label">Survival</span>
+    </div>
+  </div>
+</header>

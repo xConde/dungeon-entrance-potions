@@ -1,0 +1,299 @@
+// =============================================================================
+// Game Over Modal Component Styles
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/tavern' as *;
+
+// Tavern parchment death-notice / victory-scroll. --tavern-* cascade from the
+// potion-stand :host; `:host *` re-asserts them past the global `.night-mode *`
+// token reset. Semantic danger/success accents are kept for the drama.
+:host {
+  @include tavern-tokens;
+}
+
+:host * {
+  @include tavern-tokens;
+  // Re-cross the encapsulation boundary: the shell's global `.night-mode *` /
+  // `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+  // every element it can see, INCLUDING elements inside this component's own
+  // template — potion-stand's `:host *` override (styles/_variables.scss)
+  // can only reach as far as this component's own host tag
+  // (<app-game-over-modal>), not inside it. `inherit` re-pulls the
+  // correctly-set value from that host. Consumed by the tavern-button /
+  // tavern-button-gold mixins' own :focus-visible rule (styles/_tavern.scss).
+  --focus-color: inherit;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.gameover-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--bg-color) 95%, black);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-major;
+  animation: fadeIn $animation-slow $easing-standard;
+}
+
+.gameover-modal {
+  background: linear-gradient(168deg, var(--tavern-parchment), var(--tavern-parchment-2));
+  @include depth-border-strong;
+  border-color: var(--game-danger);
+  border-width: 2px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  border-radius: $radius-medium;
+  max-width: 32rem;
+  width: 100%;
+  padding: $spacing-major;
+  animation: slideInScale $animation-slow $easing-standard;
+
+  .gameover-title {
+    margin: 0 0 $spacing-generous;
+    color: var(--game-danger);
+    font-size: $text-xlarge * 1.5; // 36px
+    text-align: center;
+    font-weight: $weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .gameover-content {
+    .gameover-reason {
+      text-align: center;
+      color: var(--text-color);
+      font-size: $text-large;
+      margin: 0 0 $spacing-major;
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    .gameover-stats {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-standard;
+      margin: 0 0 $spacing-major;
+      background: color-mix(in srgb, var(--text-color) 3%, transparent);
+      @include depth-border-standard;
+      border-radius: $radius-base;
+      padding: $spacing-generous;
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $spacing-standard;
+        border-bottom: 1px solid var(--border-color);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .stat-label {
+          color: var(--text-color-muted);
+          font-size: $text-medium;
+        }
+
+        .stat-value {
+          @include text-data;
+          color: var(--text-color);
+          font-weight: $weight-semibold;
+          font-size: $text-large;
+
+          &.saved {
+            color: var(--game-success);
+          }
+
+          &.deaths {
+            color: var(--game-danger);
+          }
+
+          &.debt {
+            color: var(--game-danger);
+            font-weight: $weight-bold;
+          }
+
+          &.gold {
+            color: var(--game-gold);
+            font-weight: $weight-bold;
+          }
+        }
+      }
+    }
+
+    .gameover-narrative {
+      text-align: center;
+      color: var(--text-color);
+      font-size: $text-medium;
+      margin: 0 0 $spacing-standard;
+      line-height: 1.5;
+    }
+
+    .gameover-epitaph {
+      text-align: center;
+      color: var(--text-color-muted);
+      font-size: $text-medium;
+      margin: 0;
+      font-style: italic;
+      opacity: 0.8;
+    }
+  }
+
+  .gameover-restart {
+    @include tavern-button-gold;
+    width: 100%;
+    padding: $spacing-comfortable $spacing-major;
+    font-size: $text-large;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: $spacing-generous;
+  }
+
+  .gameover-exit {
+    @include tavern-button;
+    width: 100%;
+    padding: $spacing-standard $spacing-major;
+    font-size: $text-medium;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: $spacing-standard;
+  }
+
+  // Victory modal - clean success styling
+  &.victory {
+    border-color: var(--game-success);
+
+    .victory-title {
+      color: var(--game-success);
+    }
+
+    .success-reason {
+      color: var(--game-success);
+      font-weight: $weight-medium;
+    }
+
+    .victory-epitaph {
+      color: var(--game-success);
+      opacity: 0.9;
+    }
+
+    .gameover-restart {
+      &:hover {
+        background: var(--game-success);
+        border-color: var(--game-success);
+        color: white;
+      }
+    }
+  }
+
+  // Victory tier badge — shows beneath the Victory! heading on success outcomes
+  .victory-tier {
+    text-align: center;
+    margin: 0 0 $spacing-generous;
+    padding: $spacing-comfortable $spacing-major;
+    background: color-mix(in srgb, var(--game-success) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--game-success) 40%, transparent);
+    border-radius: $radius-base;
+
+    // Muted gold accent for the top tier
+    &[data-tier='master'] {
+      background: color-mix(in srgb, var(--game-gold) 10%, transparent);
+      border-color: color-mix(in srgb, var(--game-gold) 40%, transparent);
+
+      .victory-tier-label {
+        color: var(--game-gold);
+      }
+    }
+
+    // Standard green for respected
+    &[data-tier='respected'] {
+      .victory-tier-label {
+        color: var(--game-success);
+      }
+    }
+
+    // Muted text for survivor tier (still a win, just humbler)
+    &[data-tier='survivor'] {
+      background: color-mix(in srgb, var(--text-color) 5%, transparent);
+      border-color: color-mix(in srgb, var(--text-color) 20%, transparent);
+
+      .victory-tier-label {
+        color: var(--text-color);
+      }
+
+      .victory-tier-flavor {
+        color: var(--text-color-muted);
+      }
+    }
+
+    .victory-tier-label {
+      display: block;
+      font-size: $text-xlarge;
+      font-weight: $weight-bold;
+      letter-spacing: 0.05em;
+      margin-bottom: $spacing-standard;
+    }
+
+    .victory-tier-flavor {
+      color: var(--text-color);
+      font-size: $text-medium;
+      line-height: 1.5;
+      margin: 0;
+      opacity: 0.9;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .gameover-overlay {
+    padding: $spacing-standard;
+  }
+
+  .gameover-modal {
+    padding: $spacing-generous;
+
+    .gameover-title {
+      font-size: $text-xlarge;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  .gameover-restart {
+    min-height: 44px;
+  }
+}
+
+// Mobile bottom-sheet removed — main's centered dialog works well on all viewports.
+// The ancestor .main-box has overflow:hidden + stacking context that clips position:fixed,
+// so the centered dialog (which fits within the game area) is the correct approach.
+
+// Phase 4c — reduced-motion guard for game-over entrance animation.
+@media (prefers-reduced-motion: reduce) {
+  .gameover-overlay,
+  .gameover-modal {
+    animation: none !important;
+  }
+}

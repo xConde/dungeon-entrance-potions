@@ -1,0 +1,505 @@
+<!-- projects-detail's own h1 (.launch-title) unmounts once the demo launches —
+     this page needs its own for a11y/SEO structure while the embed is live. -->
+<h1 class="sr-only">Dungeon Entrance Potions</h1>
+
+<!-- Floating Death Skull -->
+@if (showDeathModal && recentDeath) {
+  <div class="floating-death">
+    <div class="death-icon" [innerHTML]="deathIconSvg"></div>
+    @if (recentDeath.lastWords) {
+      <div class="death-words">"{{ recentDeath.lastWords }}"</div>
+    }
+  </div>
+}
+
+<!-- Visible feedback toast — sighted counterpart to the sr-only currentMessage
+     region inside .potion-stand-container below. aria-hidden because that
+     region already announces this text via aria-live; a second live region
+     here would double-announce it. Sibling of .potion-stand-container (like
+     floating-death and the two modals above/below), NOT a descendant of it,
+     because .potion-stand-container has an unconditional `overflow: hidden`
+     (styles/_layout.scss) that clips position:fixed descendants in every
+     mainstream browser even though :host's transform is their actual
+     containing block — the overflow-clip trap this repo already paid for
+     once with the death/modal overlays. Position is still host-relative:
+     :host's transform (potion-stand.component.scss) is the containing block
+     for position:fixed regardless of DOM nesting level.
+     message-bar--clear-shell-game raises the toast's bottom offset (desktop/
+     tablet only, styles/_animations.scss) so it clears the Stock Rescue strip
+     (.shell-game-section, styles/_layout.scss) pinned to the bottom of the
+     game-grid outside merchant phase (day-summary/game-over render a
+     full-screen modal over this regardless, so the class is harmless there).
+     Owner redo (2026-08-17): withheld for the PLAYING phase specifically —
+     this is a position:fixed overlay that never reflows content out of its
+     way, and at compact window heights its bottom-anchored offset landed on
+     top of the Ready Stock cards and Hand-over-bottle sell controls it was
+     telling the player to use. Playing phase now renders its own in-flow
+     equivalent inside app-potion-shop (toastMessage/toastIconSvg inputs
+     below), which can't cover that panel's own content by construction. -->
+@if (currentMessage && gamePhase !== 'playing') {
+  <div
+    #messageToast
+    class="message-bar"
+    [class.message-info]="currentMessage.type === 'info'"
+    [class.message-success]="currentMessage.type === 'success'"
+    [class.message-warning]="currentMessage.type === 'warning'"
+    [class.message-error]="currentMessage.type === 'error'"
+    [class.message-bar--clear-shell-game]="gamePhase !== 'merchant'"
+    aria-hidden="true"
+  >
+    <span class="message-bar__icon" [innerHTML]="getMessageIconSvg(currentMessage.type)"></span>
+    <span class="message-bar__text">{{ currentMessage.text }}</span>
+  </div>
+}
+
+<!-- End of Day Summary Modal -->
+@if (gamePhase === 'day-summary' && daySummaryData) {
+  <app-day-summary-modal
+    [data]="daySummaryData"
+    [gold]="gold"
+    [reputation]="reputation"
+    [nextDay]="day"
+    (dismiss)="dismissDaySummary()"
+  />
+}
+
+<!-- Game Over Modal -->
+@if (gamePhase === 'game-over' && gameOverReason) {
+  <app-game-over-modal
+    [reason]="gameOverReason"
+    [stats]="gameOverStats"
+    (restart)="restartGame()"
+    (exitClick)="onExitToPortfolio()"
+  />
+}
+
+<!-- Potion Stand - Single Page Application -->
+<div
+  class="potion-stand-container"
+  [class.is-merchant]="gamePhase === 'merchant'"
+  [style.--guilt-intensity]="guilt / maxGuilt"
+  [attr.data-state-tick]="stateTickAttr()"
+>
+  <!-- Guilt vignette overlay — red edges intensify with guilt level -->
+  <div class="guilt-vignette" [style.opacity]="(guilt / maxGuilt) * 0.4"></div>
+
+  <!-- Pause overlay — clear "the world is frozen" indicator. Only shown during
+       active play; the tutorial and day-summary phases pause the loop too but
+       have their own UI, so they're excluded. Click / Enter / Space resumes
+       (the P key resume is handled globally). -->
+  @if (
+    isPaused && gamePhase === 'playing' && tutorialStep === 0 && !dilutionBenchOpen() && !closeDayConfirmationOpen()
+  ) {
+    <div
+      class="pause-overlay"
+      role="button"
+      tabindex="0"
+      aria-label="Game paused. Activate to resume."
+      (click)="togglePause()"
+      (keydown.enter)="togglePause()"
+      (keydown.space)="togglePause(); $event.preventDefault(); $event.stopPropagation()"
+    >
+      <div class="pause-overlay__card">
+        <span class="pause-overlay__glyph" aria-hidden="true">
+          <span class="pause-bar"></span>
+          <span class="pause-bar"></span>
+        </span>
+        <span class="pause-overlay__title">Paused</span>
+        <span class="pause-overlay__hint">Press <kbd>P</kbd> or tap to resume</span>
+      </div>
+    </div>
+  }
+
+  <!-- Screen reader live region for important game events -->
+  <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+    @if (currentMessage) {
+      {{ currentMessage.text }}
+    }
+  </div>
+
+  <!-- Cross-tab save conflict banner (Phase 7b) -->
+  @if (crossTabConflict()) {
+    <div class="cross-tab-banner" role="alert" aria-live="assertive">
+      <span class="cross-tab-banner__text">
+        Another tab made changes to your save. Refresh to load the latest version.
+      </span>
+      <button class="cross-tab-banner__action" type="button" (click)="reloadForLatestSave()">Refresh</button>
+    </div>
+  }
+
+  <!-- Random Event Banner — role=status so AT users hear strategy-affecting events -->
+  @if (currentEvent) {
+    <div class="event-banner" role="status" aria-live="polite" aria-atomic="true">
+      <div class="event-content">
+        <span class="event-icon" [innerHTML]="getEventIconSvg(currentEvent.icon)"></span>
+        <div class="event-text">
+          <div class="event-title">{{ currentEvent.title }}</div>
+          <div class="event-description">{{ currentEvent.description }}</div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Market Ticker -->
+  @if (marketTicker.active) {
+    <div class="market-ticker">
+      <div class="ticker-content">
+        @if (marketTicker.priceTrend === 'up') {
+          <span class="ticker-icon ticker-icon--up" aria-hidden="true" [innerHTML]="trendUpIcon"></span>
+        } @else if (marketTicker.priceTrend === 'down') {
+          <span class="ticker-icon ticker-icon--down" aria-hidden="true" [innerHTML]="trendDownIcon"></span>
+        } @else if (marketTicker.priceTrend === 'stable') {
+          <span class="ticker-icon ticker-icon--stable" aria-hidden="true" [innerHTML]="chartLineIcon"></span>
+        }
+        <span>{{ marketTicker.message }}</span>
+      </div>
+    </div>
+  }
+
+  <!-- Header with Title and Stats -->
+  <app-game-header
+    [day]="day"
+    [timeOfDay]="timeOfDay"
+    [gameTime]="gameTime"
+    [isPaused]="isPaused"
+    [pauseLocked]="dilutionBenchOpen() || closeDayConfirmationOpen()"
+    [gameSpeed]="gameSpeed"
+    [canCloseDay]="gamePhase === 'playing' && tutorialStep === 0"
+    [closeDayLocked]="dilutionBenchOpen() || closeDayConfirmationOpen()"
+    [guilt]="guilt"
+    [maxGuilt]="maxGuilt"
+    [gold]="gold"
+    [dailyProfit]="dailyProfit"
+    [dailyExpenses]="dailyExpenses"
+    [reputation]="reputation"
+    [deathCount]="deathCount"
+    [savedCount]="savedCount"
+    [audioEnabled]="audio.enabled"
+    (togglePause)="togglePause()"
+    (changeSpeed)="changeSpeed()"
+    (toggleAudio)="toggleAudio()"
+    (openHelp)="showHelpOverlay.set(true)"
+    (openTutorial)="replayTutorial()"
+    (requestCloseDay)="requestCloseDay()"
+  />
+
+  @if (closeDayConfirmationOpen()) {
+    <div
+      class="close-day-scrim"
+      (click)="cancelCloseDay()"
+      (keydown.escape)="cancelCloseDay(); $event.preventDefault(); $event.stopPropagation()"
+    >
+      <section
+        class="close-day-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="close-day-title"
+        aria-describedby="close-day-warning"
+        [appFocusTrap]="true"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="close-day-sign" aria-hidden="true">
+          <span>Open</span>
+          <strong>Closed</strong>
+        </div>
+        <div class="close-day-heading">
+          <span class="close-day-heading__eyebrow">Turn the sign before nightfall</span>
+          <h2 id="close-day-title">Close Day {{ day }} early?</h2>
+          <p>You can end any shop day when you are satisfied, or when continuing is no longer worth the risk.</p>
+        </div>
+
+        @let closePreview = closeDayPreview;
+        <div class="close-day-ledger">
+          <div>
+            <span>Waiting at the counter</span>
+            <strong>{{ closePreview.waitingCustomerCount }}</strong>
+            <small>Dismissed without a sale</small>
+          </div>
+          <div [class.close-day-ledger__danger]="closePreview.atRiskCount > 0">
+            <span>Still in the dungeon</span>
+            <strong>{{ closePreview.atRiskCount }}</strong>
+            @if (closePreview.atRiskCount > 0) {
+              <small>−{{ closePreview.reputationCost }} rep · +{{ closePreview.guiltCost }} guilt</small>
+            } @else {
+              <small>No one will be abandoned</small>
+            }
+          </div>
+          <div>
+            <span>Daily overhead</span>
+            <strong class="coin">{{ closePreview.dailyOverhead }}</strong>
+            <small>Charged when the ledger closes</small>
+          </div>
+        </div>
+
+        <p id="close-day-warning" class="close-day-warning" [class.is-safe]="closePreview.atRiskCount === 0">
+          @if (closePreview.atRiskCount > 0) {
+            Turning the sign now abandons active dungeon runners. Looting and victorious adventurers are already safe.
+          } @else {
+            The dungeon is clear. Closing now simply trades the remaining selling time for a fresh morning.
+          }
+        </p>
+
+        <div class="close-day-actions">
+          <button type="button" class="close-day-cancel" (click)="cancelCloseDay()">Keep the door open</button>
+          <button type="button" class="close-day-confirm" (click)="confirmCloseDay()">
+            Turn sign to closed
+            <small>End Day {{ day }}</small>
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  <!-- Mobile tab navigation (visible only on mobile < 768px) -->
+  <nav class="mobile-tabs" role="tablist" aria-label="Game panels" (keydown)="onMobileTabKeydown($event)">
+    <button
+      id="tab-customers"
+      role="tab"
+      [attr.aria-selected]="mobileActiveTab() === 'customers' ? 'true' : 'false'"
+      [attr.aria-controls]="'panel-customers'"
+      [attr.tabindex]="mobileActiveTab() === 'customers' ? 0 : -1"
+      [class.active]="mobileActiveTab() === 'customers'"
+      [disabled]="dilutionBenchOpen() || closeDayConfirmationOpen()"
+      (click)="setMobileTab('customers')"
+    >
+      {{ gamePhase === 'merchant' ? 'Buy' : 'Customers' }}
+    </button>
+    <button
+      id="tab-potions"
+      role="tab"
+      [attr.aria-selected]="mobileActiveTab() === 'potions' ? 'true' : 'false'"
+      [attr.aria-controls]="'panel-potions'"
+      [attr.tabindex]="mobileActiveTab() === 'potions' ? 0 : -1"
+      [class.active]="mobileActiveTab() === 'potions'"
+      [disabled]="dilutionBenchOpen() || closeDayConfirmationOpen()"
+      (click)="setMobileTab('potions')"
+    >
+      {{ gamePhase === 'merchant' ? 'Stock' : 'Potions' }}
+      @if (gamePhase !== 'merchant' && selectedAdventurer) {
+        <span class="tab-dot" aria-hidden="true"></span>
+      }
+    </button>
+    <button
+      id="tab-dungeon"
+      role="tab"
+      [attr.aria-selected]="mobileActiveTab() === 'dungeon' ? 'true' : 'false'"
+      [attr.aria-controls]="'panel-dungeon'"
+      [attr.tabindex]="mobileActiveTab() === 'dungeon' ? 0 : -1"
+      [class.active]="mobileActiveTab() === 'dungeon'"
+      [disabled]="dilutionBenchOpen() || closeDayConfirmationOpen()"
+      (click)="setMobileTab('dungeon')"
+    >
+      {{ gamePhase === 'merchant' ? 'Info' : 'Dungeon' }}
+      @if (gamePhase !== 'merchant' && activeAdventurersInDungeon.length > 0) {
+        <span class="tab-badge" aria-hidden="true" [class.danger]="hasDungeonDanger">{{
+          activeAdventurersInDungeon.length
+        }}</span>
+      }
+    </button>
+  </nav>
+
+  <!-- Main Game Grid -->
+  <div class="game-grid" [class.is-merchant]="gamePhase === 'merchant'" [class.decision-open]="dilutionBenchOpen()">
+    <!-- Left Panel: Merchant Wares (merchant phase) or Customer Queue (playing phase) -->
+    <section
+      id="panel-customers"
+      class="customers-panel"
+      role="tabpanel"
+      aria-labelledby="tab-customers"
+      [class.mobile-hidden]="mobileActiveTab() !== 'customers'"
+    >
+      @if (gamePhase === 'merchant') {
+        <!-- Merchant Wares -->
+        <app-merchant-wares
+          [inventory]="merchantInventory"
+          [gold]="gold"
+          (buyPotion)="buyFromMerchant($event)"
+          (buyAll)="buyAllFromMerchant()"
+        />
+      } @else {
+        <!-- Customer Queue -->
+        <app-customer-queue
+          [adventurers]="adventurersInShop"
+          [selectedAdventurer]="selectedAdventurer"
+          [purchaseAnimation]="purchaseAnimation"
+          [comboSignal]="comboSignal"
+          [timeOfDay]="timeOfDay"
+          (selectAdventurer)="selectAdventurer($event)"
+        />
+      }
+    </section>
+
+    <!-- Center Panel: Your Stock (merchant phase) or Potion Shop (playing phase) -->
+    <section
+      id="panel-potions"
+      class="potions-panel"
+      role="tabpanel"
+      aria-labelledby="tab-potions"
+      [class.mobile-hidden]="mobileActiveTab() !== 'potions'"
+      [class.merchant-expanded]="gamePhase === 'merchant'"
+      [class.decision-open]="dilutionBenchOpen()"
+    >
+      @if (gamePhase === 'merchant') {
+        <!-- Merchant Phase: Show inventory and Open Shop -->
+        <app-merchant-inventory
+          [inventory]="potionInventory"
+          [potionUpgrades]="potionUpgrades"
+          [gold]="gold"
+          [reputation]="reputation"
+          [dailyOverhead]="DAILY_OVERHEAD"
+          [canAffordPotions]="canAffordPotions"
+          (openShop)="openShop()"
+          (buyUpgrade)="buyUpgrade($event)"
+        />
+      } @else {
+        <!-- Playing Phase: Normal Potion Shop -->
+        <app-potion-shop
+          [potions]="availablePotions"
+          [inventory]="potionInventory"
+          [selectedAdventurer]="selectedAdventurer"
+          [potionUpgrades]="potionUpgrades"
+          [reputation]="reputation"
+          [recommendedPotionId]="getRecommendedPotionId()"
+          [currentFloor]="currentFloor"
+          [priceMode]="priceMode()"
+          [forecasts]="potionForecasts"
+          [emergencyPrices]="emergencyPrices"
+          [gold]="gold"
+          [hasSeenDilutionRitual]="hasSeenDilutionRitual"
+          [toastMessage]="currentMessage"
+          [toastIconSvg]="currentMessage ? getMessageIconSvg(currentMessage.type) : null"
+          (sell)="onPotionSell($event)"
+          (dilute)="dilutePotion($event)"
+          (dilutionBenchOpenChange)="onDilutionBenchOpenChange($event)"
+          (restock)="emergencyRestock($event)"
+          (priceModeChange)="setPriceMode($event)"
+        />
+      }
+    </section>
+
+    <!-- Shell Game (mobile: Adventure tab, desktop: center column under potion shop) -->
+    @if (gamePhase !== 'merchant') {
+      <section class="shell-game-section" [class.mobile-hidden]="mobileActiveTab() !== 'customers'">
+        <app-shell-game
+          [isActive]="gamePhase === 'playing' && !isPaused && tutorialStep === 0"
+          [rewardType]="getShellRewardType()"
+          (potionWon)="onShellPotionWon($event)"
+        />
+      </section>
+    }
+
+    <!-- Right Panel: Shop Info (merchant phase) or Dungeon Log (playing phase) -->
+    <section
+      id="panel-dungeon"
+      class="dungeon-panel"
+      role="tabpanel"
+      aria-labelledby="tab-dungeon"
+      [class.mobile-hidden]="mobileActiveTab() !== 'dungeon'"
+      [class.merchant-phase]="gamePhase === 'merchant'"
+    >
+      @if (gamePhase === 'merchant') {
+        <div class="merchant-tips-wrapper">
+          <app-merchant-tips
+            [day]="day"
+            [currentFloor]="currentFloor"
+            [potionUpgrades]="potionUpgrades"
+            [gold]="gold"
+            [savedCount]="savedCount"
+            [deathCount]="deathCount"
+            [goldEarned]="goldEarned"
+            [customerReviews]="customerReviews"
+            (buyUpgrade)="buyUpgrade($event)"
+          />
+        </div>
+      } @else {
+        <app-dungeon-activity
+          [adventurers]="activeAdventurersInDungeon"
+          [events]="dungeonEvents"
+          [currentFloor]="currentFloor"
+          [showFullNames]="showFullNamesInLog"
+          (toggleNameDisplay)="toggleLogNameDisplay()"
+        />
+      }
+    </section>
+  </div>
+
+  <!-- Tutorial overlay -->
+  @if (tutorialStep > 0) {
+    <div
+      class="tutorial-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tutorial"
+      [appFocusTrap]="tutorialStep > 0"
+    >
+      <div class="tutorial-spotlight" [class]="'spotlight-step-' + tutorialStep"></div>
+      <div class="tutorial-card" [class]="'card-step-' + tutorialStep">
+        @switch (tutorialStep) {
+          @case (1) {
+            <h3>Welcome to your Potion Shop!</h3>
+            <p>
+              Adventurers will visit seeking potions for the dungeon below. Equip them well. The consequences are yours
+              to live with.
+            </p>
+          }
+          @case (2) {
+            <h3>Sell Potions to Adventurers</h3>
+            <p>
+              Click a customer to select them, then switch to the Potions tab to sell. Each adventurer can carry up to 2
+              potions.
+            </p>
+          }
+          @case (3) {
+            <h3>Watch the Dungeon</h3>
+            <p>
+              After selling potions, adventurers enter the dungeon. Switch to the Dungeon tab to watch how they fare.
+            </p>
+          }
+          @case (4) {
+            <h3>Your Choices Matter</h3>
+            <p>
+              The hidden stillroom turns one honest potion into two cheap, quarter-strength bottles. It stretches scarce
+              stock, but every cut adds guilt and puts an adventurer at greater risk.
+            </p>
+          }
+        }
+        <div class="tutorial-actions">
+          <button class="tutorial-skip" (click)="skipTutorial()">Skip</button>
+          <button class="tutorial-next" (click)="advanceTutorial()">
+            {{ tutorialStep === 4 ? 'Start Playing' : 'Next' }}
+          </button>
+        </div>
+        <div class="tutorial-progress">
+          @for (step of [1, 2, 3, 4]; track step) {
+            <span class="progress-dot" [class.active]="step <= tutorialStep"></span>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showHelpOverlay()) {
+    <div
+      class="help-overlay"
+      (click)="showHelpOverlay.set(false)"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+      [appFocusTrap]="showHelpOverlay()"
+    >
+      <div class="help-content" (click)="$event.stopPropagation()">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="help-grid">
+          <div class="help-row"><kbd>P</kbd> Pause/Resume</div>
+          <div class="help-row"><kbd>S</kbd> Cycle Speed</div>
+          <div class="help-row"><kbd>1-5</kbd> Sell Potion</div>
+          <div class="help-row"><kbd>Q-T</kbd> Select Customer</div>
+          <div class="help-row"><kbd>Space</kbd> Sell Recommended</div>
+          <div class="help-row"><kbd>Esc</kbd> Pause</div>
+          <div class="help-row"><kbd>?</kbd> This Help</div>
+        </div>
+        <button class="help-close" (click)="showHelpOverlay.set(false)">Close</button>
+      </div>
+    </div>
+  }
+</div>

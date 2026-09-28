@@ -1,0 +1,43 @@
+// =============================================================================
+// Cave — the base playing-phase atmosphere: a torchlit dungeon-entrance.
+// Sibling to the tavern lobby (_tavern.scss) — same warm family, but darker,
+// stonier and lit by ember/torch-orange rather than the tavern's softer gold.
+// Reads the --cave-* palette from .potion-stand-container (_layout.scss),
+// which cascades into the playing child components through view encapsulation.
+// Theme-aware: torchlit dark stone at night, a lit stone cave-mouth in day.
+// =============================================================================
+@use './design-system' as *;
+
+// Remap the generic theme tokens to the cave palette inside a playing panel —
+// one include warms every var(--text-color)/--border-color/--text-area-color/
+// --game-gold usage without touching each rule. Colours change, layout doesn't.
+@mixin cave-tokens {
+  @include potion-status-tokens;
+  --text-color: var(--cave-ink, #e2d4ba);
+  --text-color-muted: var(--cave-ink-muted, #9c8b70);
+  --border-color: color-mix(in srgb, var(--cave-frame, #4c3a24) 78%, transparent);
+  --text-area-color: color-mix(in srgb, var(--cave-slot, #120e09) 60%, transparent);
+  --game-gold: var(--cave-ember, #e09a44);
+}
+
+// Carved-stone heading — ornamental face, torch-ember ink, cut shadow.
+@mixin cave-heading {
+  font-family: 'Uncial Antiqua', Georgia, 'Times New Roman', serif;
+  color: var(--cave-ember, #e09a44);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+// Recessed stone cell — dark inset slot with a faint ember rim.
+@mixin cave-slot {
+  background: linear-gradient(
+    158deg,
+    color-mix(in srgb, var(--cave-slot, #120e09) 80%, transparent),
+    var(--cave-slot, #120e09)
+  );
+  border: 1px solid color-mix(in srgb, var(--cave-frame, #4c3a24) 85%, transparent);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px color-mix(in srgb, var(--cave-ember, #e09a44) 8%, transparent);
+}

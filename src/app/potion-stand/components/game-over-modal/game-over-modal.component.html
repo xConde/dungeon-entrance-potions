@@ -1,0 +1,178 @@
+<div class="gameover-overlay" role="dialog" aria-modal="true" aria-labelledby="gameover-title" tabindex="-1">
+  <div class="gameover-modal" [class.victory]="isVictory">
+    @if (reason === 'bankruptcy') {
+      <h2 id="gameover-title" class="gameover-title">Shop Closed</h2>
+      <div class="gameover-content">
+        <p class="gameover-reason">Your debts have grown too large. The landlord has seized your shop.</p>
+
+        <div class="gameover-stats">
+          <div class="stat-row">
+            <span class="stat-label">Days Survived:</span>
+            <span class="stat-value">{{ stats.day }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Adventurers Saved:</span>
+            <span class="stat-value saved">{{ stats.savedCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Deaths:</span>
+            <span class="stat-value deaths">{{ stats.deathCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final Reputation:</span>
+            <span class="stat-value">{{ stats.reputation }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final Debt:</span>
+            <span class="stat-value debt coin">{{ stats.gold }}</span>
+          </div>
+          @if (stats.maxDeathStreak >= 3) {
+            <div class="stat-row">
+              <span class="stat-label">Worst Death Streak:</span>
+              <span class="stat-value deaths">{{ stats.maxDeathStreak }}</span>
+            </div>
+          }
+          @if (stats.combosTriggered > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Combos Triggered:</span>
+              <span class="stat-value">{{ stats.combosTriggered }}</span>
+            </div>
+          }
+        </div>
+
+        <p class="gameover-epitaph">{{ epitaph }}</p>
+      </div>
+    }
+    @if (reason === 'reputation') {
+      <h2 id="gameover-title" class="gameover-title">Guild Blacklisted</h2>
+      <div class="gameover-content">
+        <p class="gameover-reason">
+          Your reputation has fallen so low that the Adventurer's Guild has revoked your license. No one will buy from
+          you again.
+        </p>
+
+        <div class="gameover-stats">
+          <div class="stat-row">
+            <span class="stat-label">Days Survived:</span>
+            <span class="stat-value">{{ stats.day }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Adventurers Saved:</span>
+            <span class="stat-value saved">{{ stats.savedCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Deaths:</span>
+            <span class="stat-value deaths">{{ stats.deathCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final Reputation:</span>
+            <span class="stat-value deaths">{{ stats.reputation }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final Gold:</span>
+            <span class="stat-value coin">{{ stats.gold }}</span>
+          </div>
+          @if (stats.dilutedSold > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Diluted Sold:</span>
+              <span class="stat-value deaths">{{ stats.dilutedSold }}</span>
+            </div>
+          }
+          @if (stats.maxDeathStreak >= 3) {
+            <div class="stat-row">
+              <span class="stat-label">Worst Death Streak:</span>
+              <span class="stat-value deaths">{{ stats.maxDeathStreak }}</span>
+            </div>
+          }
+        </div>
+
+        <p class="gameover-epitaph">{{ epitaph }}</p>
+      </div>
+    }
+    @if (reason === 'success') {
+      <h2 id="gameover-title" class="gameover-title victory-title">Victory!</h2>
+      @if (victoryTier) {
+        <div class="victory-tier" [attr.data-tier]="victoryTier.id">
+          <span class="victory-tier-label">{{ victoryTier.label }}</span>
+          <p class="victory-tier-flavor">{{ victoryTier.flavor }}</p>
+        </div>
+      }
+      <div class="gameover-content">
+        <p class="gameover-reason success-reason">
+          You've survived 30 days at the dungeon entrance! Your potion shop has become legendary among adventurers.
+        </p>
+
+        <div class="gameover-stats">
+          <div class="stat-row">
+            <span class="stat-label">Days Completed:</span>
+            <span class="stat-value">{{ stats.day }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Adventurers Saved:</span>
+            <span class="stat-value saved">{{ stats.savedCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Deaths:</span>
+            <span class="stat-value deaths">{{ stats.deathCount }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Survival Rate:</span>
+            <span class="stat-value">{{ survivalRate }}%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final:</span>
+            <span class="stat-value gold coin">{{ stats.gold }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Final Reputation:</span>
+            <span class="stat-value">{{ stats.reputation }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Total Earned:</span>
+            <span class="stat-value gold coin">{{ stats.goldEarned }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Potions Sold:</span>
+            <span class="stat-value">{{ stats.potionsSold }}</span>
+          </div>
+          @if (stats.perfectSaves > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Perfect Saves:</span>
+              <span class="stat-value saved">{{ stats.perfectSaves }}</span>
+            </div>
+          }
+          @if (stats.bossesDefeated > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Bosses Defeated:</span>
+              <span class="stat-value saved">{{ stats.bossesDefeated }}</span>
+            </div>
+          }
+          @if (stats.combosTriggered > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Combos Triggered:</span>
+              <span class="stat-value">{{ stats.combosTriggered }}</span>
+            </div>
+          }
+          @if (stats.maxDeathStreak >= 3) {
+            <div class="stat-row">
+              <span class="stat-label">Worst Death Streak:</span>
+              <span class="stat-value deaths">{{ stats.maxDeathStreak }}</span>
+            </div>
+          }
+          @if (stats.dilutedSold > 0) {
+            <div class="stat-row">
+              <span class="stat-label">Diluted Sold:</span>
+              <span class="stat-value deaths">{{ stats.dilutedSold }}</span>
+            </div>
+          }
+        </div>
+
+        <p class="gameover-narrative">{{ playstyleNarrative }}</p>
+        <p class="gameover-epitaph victory-epitaph">{{ epitaph }}</p>
+      </div>
+    }
+
+    <button class="gameover-restart" (click)="onRestartClick()">Start New Shop</button>
+    <button class="gameover-exit" (click)="onExitClick()">Visit EdConde.com</button>
+  </div>
+</div>

@@ -1,0 +1,245 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Shell Game Mini-Game
+// =============================================================================
+
+.shell-game-container {
+  flex-shrink: 0;
+  margin-top: $spacing-standard;
+  padding: $spacing-standard;
+  border-top: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-color) 50%, transparent);
+  border-radius: $radius-small;
+  position: relative;
+}
+
+.shell-game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-tight;
+}
+
+// Status in top-right corner
+.shell-status {
+  position: absolute;
+  top: $spacing-tight;
+  right: $spacing-tight;
+  height: auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+}
+
+// Hat row with flexbox ordering for shuffle
+.shell-hats-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: $spacing-generous;
+  height: 70px;
+  padding-bottom: $spacing-tight;
+}
+
+.hat-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 50px;
+  height: 100%;
+  position: relative;
+  transition: transform 600ms $easing-standard; // Smooth shuffle animation
+
+  &.clickable {
+    cursor: pointer;
+
+    .wizard-hat:hover {
+      transform: translateY(-3px);
+    }
+  }
+
+  &.selected {
+    .wizard-hat {
+      transform: translateY(-5px);
+      filter: brightness(1.1);
+    }
+  }
+}
+
+// Potion under the hat (reuses existing .potion-bottle)
+.shell-potion {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity $animation-standard $easing-standard;
+  z-index: 0;
+
+  &.visible {
+    opacity: 1;
+  }
+}
+
+// Shell game bottle - full styling (can't inherit from .potion-card scope)
+.shell-bottle {
+  width: 1.25rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .bottle-cork {
+    width: 0.5rem;
+    height: 0.2rem;
+    background: #a67c52;
+    border-radius: 2px 2px 0 0;
+    border: 1px solid color-mix(in srgb, #8b6342 80%, transparent);
+    border-bottom: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bottle-neck {
+    width: 0.4rem;
+    height: 0.25rem;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
+  }
+
+  .bottle-body {
+    width: 100%;
+    height: 1.5rem;
+    border-radius: 20% 20% 45% 45% / 10% 10% 40% 40%;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    @include depth-border-standard;
+    position: relative;
+    overflow: hidden;
+
+    .liquid-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 40% 40% / 0 0 35% 35%;
+      opacity: 0.9;
+    }
+
+    // Glass highlight
+    &::before {
+      content: '';
+      position: absolute;
+      top: 15%;
+      left: 10%;
+      width: 2px;
+      height: 55%;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      z-index: 1;
+    }
+  }
+}
+
+// Wizard hat - blue design
+.wizard-hat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform $animation-slow $easing-standard;
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+
+  &.lifted {
+    transform: translateY(-35px);
+  }
+
+  // Cone (main hat body) - wizard blue
+  .hat-cone {
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 32px solid #2563eb;
+    position: relative;
+
+    // Subtle highlight on left side
+    &::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: -12px;
+      width: 6px;
+      height: 18px;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.15), transparent);
+      transform: skewY(-15deg);
+    }
+  }
+
+  // Decorative band - gold accent
+  .hat-band {
+    width: 30px;
+    height: 5px;
+    background: #c9a227;
+    margin-top: -1px;
+    border-radius: 1px;
+    position: relative;
+
+    // Diamond decoration (pure CSS, no Unicode)
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 4px;
+      background: #fbbf24;
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+  }
+
+  // Brim - matching blue
+  .hat-brim {
+    width: 44px;
+    height: 8px;
+    background: #1d4ed8;
+    border-radius: 50%;
+    margin-top: -2px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  }
+}
+
+.shell-timer {
+  font-size: $text-small;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color-muted);
+  font-weight: 500;
+}
+
+.shell-result {
+  font-size: $text-small;
+  font-weight: 600;
+  animation: messageFadeIn $animation-standard;
+  color: var(--game-danger);
+
+  &.win {
+    color: var(--game-success);
+  }
+}
+
+.shell-hint {
+  font-size: $text-small;
+  color: var(--text-color-muted);
+}
+
+.shell-pick-prompt {
+  font-size: $text-small;
+  font-weight: 600;
+  color: var(--game-info);
+}

@@ -1,0 +1,348 @@
+// =============================================================================
+// Merchant Tips Component - Combos, challenge info, stats, and customer reviews panel
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/tavern' as *;
+
+:host {
+  @include tavern-tokens; // remap text/border/area/gold to the tavern palette
+
+  display: block;
+  height: 100%;
+}
+
+// `.night-mode *` / `.day-mode *` override a plain :host remap per-element;
+// `:host *` re-asserts the tavern palette with the specificity to win.
+:host * {
+  @include tavern-tokens;
+  // Re-cross the encapsulation boundary: the shell's global `.night-mode *` /
+  // `.day-mode *` rule (styles.scss) directly re-declares --focus-color on
+  // every element it can see, INCLUDING elements inside this component's own
+  // template — potion-stand's `:host *` override (styles/_variables.scss)
+  // can only reach as far as this component's own host tag
+  // (<app-merchant-tips>), not inside it. `inherit` re-pulls the
+  // correctly-set value from that host.
+  --focus-color: inherit;
+}
+
+.merchant-tips-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-title {
+  @include tavern-heading;
+  font-size: $text-xlarge;
+  margin-bottom: $spacing-tight;
+  padding-bottom: $spacing-tight;
+  border-bottom: 1px solid color-mix(in srgb, var(--tavern-gold) 35%, transparent);
+  flex-shrink: 0;
+}
+
+.merchant-tips {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-standard;
+  flex: 1;
+  min-height: 0; // Allow flex shrinking so scrollable-fade directive can detect overflow
+  overflow-y: auto;
+
+  // Chromium makes an overflowing scroll region keyboard-focusable on its own
+  // (no author tabindex needed) so it can be scrolled with arrow keys. Without
+  // an explicit ring here that stop rendered the browser's native blue "auto"
+  // outline instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+}
+
+.tip-section {
+  padding: $spacing-standard;
+  background: var(--text-area-color);
+  @include depth-border-standard;
+  border-radius: $radius-base;
+
+  .tip-title {
+    @include tavern-heading;
+    font-size: $text-medium;
+    margin: 0 0 $spacing-tight 0;
+  }
+
+  .tip-text {
+    font-size: $text-small;
+    margin: 0;
+    color: var(--text-color-muted);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Today's Challenge — a top-edge ink rule reads like a posted notice. A
+  // left status rail looked like generic dashboard UI in this tavern context.
+  // ---------------------------------------------------------------------------
+  &.challenge {
+    --challenge-ink: var(--border-color);
+
+    border-color: color-mix(in srgb, var(--challenge-ink) 28%, var(--border-color));
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent 0 17px,
+        color-mix(in srgb, var(--challenge-ink) 3%, transparent) 17px 18px
+      ),
+      var(--text-area-color);
+
+    .challenge-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-tight;
+      margin-bottom: $spacing-micro;
+
+      .tip-title {
+        margin: 0;
+      }
+    }
+
+    .threat-chip {
+      font-size: $text-micro;
+      font-weight: $weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1px $spacing-tight;
+      border-radius: $radius-small;
+      white-space: nowrap;
+    }
+
+    .challenge-floor {
+      @include text-data;
+      font-size: $text-small;
+      font-weight: $weight-semibold;
+      color: var(--text-color);
+      margin: 0 0 2px 0;
+    }
+
+    &.threat-calm {
+      --challenge-ink: var(--game-success);
+
+      .threat-chip {
+        color: var(--game-success);
+        background: color-mix(in srgb, var(--game-success) 16%, transparent);
+      }
+    }
+
+    &.threat-tense {
+      --challenge-ink: var(--game-warning);
+
+      .threat-chip {
+        color: var(--game-warning);
+        background: color-mix(in srgb, var(--game-warning) 16%, transparent);
+      }
+    }
+
+    &.threat-deadly {
+      --challenge-ink: var(--game-danger);
+
+      .threat-chip {
+        color: var(--game-danger);
+        background: color-mix(in srgb, var(--game-danger) 18%, transparent);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Combo Recipes — colour-swatched, effect-tagged recipe cards
+  // ---------------------------------------------------------------------------
+  &.combos {
+    .combo-intro {
+      font-size: $text-micro;
+      color: var(--text-color-muted);
+      margin: 0 0 $spacing-tight 0;
+      line-height: 1.3;
+    }
+
+    .combo-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-tight;
+    }
+
+    .combo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: $spacing-tight;
+      padding: $spacing-tight;
+      border-radius: $radius-small;
+      background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    }
+
+    .combo-swatches {
+      display: flex;
+      flex-shrink: 0;
+      padding-top: 1px;
+
+      .combo-drop {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--c);
+        border: 1.5px solid var(--text-area-color);
+
+        &:nth-child(2) {
+          margin-left: -5px; // slight overlap reads as "a pair"
+        }
+      }
+    }
+
+    .combo-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .combo-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-tight;
+      flex-wrap: wrap;
+    }
+
+    .combo-name {
+      font-size: $text-small;
+      font-weight: $weight-semibold;
+      color: var(--game-gold);
+    }
+
+    .combo-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    // Solid-anchored chips, not faint tints: a light colour-mixed-with-
+    // transparent tag reads fine on the fixed-dark counter surfaces
+    // elsewhere in this project, but this panel's own background is the
+    // *theme-flipping* tavern parchment (near-black at night, pale cream by
+    // day), so a faint tint can't hold 4.5:1 against both. Anchoring each
+    // chip's fill toward a fixed dark or light neutral (same recipe as the
+    // recommended-badge / bottle-seal solid badges elsewhere in this
+    // project) decouples it from that swing.
+    //
+    // Owner redo (2026-08-17): the earlier $radius-small (3px) corner read as
+    // a rounded Bootstrap-style badge next to this project's own ticket/stamp
+    // vocabulary. Squared to the same near-flat corner as .watered-stamp so
+    // it reads as an inked tag stamped onto the recipe row, not a UI pill.
+    .combo-tag {
+      font-size: 10px;
+      font-weight: $weight-semibold;
+      padding: 2px 6px;
+      border: 1px solid transparent;
+      border-radius: 1px;
+      white-space: nowrap;
+
+      &.survive {
+        color: #f5ecd6;
+        background: color-mix(in srgb, var(--game-success) 74%, #1c1006);
+        border-color: color-mix(in srgb, var(--game-success) 45%, #000);
+      }
+
+      &.loot {
+        color: #241803;
+        background: color-mix(in srgb, var(--game-gold) 45%, #f6ecd2);
+        border-color: color-mix(in srgb, var(--game-gold) 60%, #6e4a12);
+      }
+
+      // The canonical info triple (a cool slate-blue, --game-info) is tuned
+      // for neutral "informational" UI, not this tavern ledger — on the
+      // Combo Recipes ember/parchment surface it reads as the one foreign,
+      // off-palette accent (every other chip and heading here is
+      // green/gold/wood). Warmed to a bronze/pewter tone directly on this
+      // chip rather than overriding the shared --game-info token: an
+      // earlier pass warmed --game-info itself at :host/:host *, which
+      // silently rewrote the token for every element this component
+      // renders, not just this one chip (red-team Finding 2).
+      &.armor {
+        color: #f5ecd6;
+        background: color-mix(in srgb, #9c7c4a 74%, #1c1006);
+        border-color: color-mix(in srgb, #9c7c4a 45%, #000);
+      }
+    }
+
+    .combo-desc {
+      font-size: $text-micro;
+      color: var(--text-color-muted);
+      line-height: 1.3;
+    }
+  }
+
+  &.reviews {
+    .review-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-tight;
+    }
+
+    .review-item {
+      --review-ink: var(--border-color);
+
+      position: relative;
+      padding: $spacing-tight;
+      border-radius: $radius-small;
+      border: 1px dashed color-mix(in srgb, var(--review-ink) 55%, transparent);
+      background: color-mix(in srgb, var(--review-ink) 3%, transparent);
+
+      &.survived {
+        --review-ink: var(--game-success);
+      }
+
+      &.died {
+        --review-ink: var(--game-danger);
+      }
+
+      .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-micro;
+
+        .review-name {
+          font-size: $text-small;
+          font-weight: $weight-medium;
+        }
+
+        .review-rating {
+          font-size: $text-small;
+          color: var(--game-gold);
+          letter-spacing: -1px;
+        }
+      }
+
+      .review-comment {
+        font-size: $text-small;
+        color: var(--text-color-muted);
+        font-style: italic;
+        margin: 0;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  :host {
+    overflow: visible;
+    height: auto;
+  }
+
+  .merchant-tips-panel {
+    height: auto;
+  }
+
+  .merchant-tips {
+    overflow: visible !important;
+    min-height: auto;
+  }
+}

@@ -1,0 +1,178 @@
+@use './design-system' as *;
+@use './tavern' as *;
+
+// =============================================================================
+// Modals - Clean overlays with borders-only depth
+// =============================================================================
+//
+// The day-summary and game-over modals used to live here as raw markup with
+// classes like `.summary-modal` / `.gameover-modal`. They're now their own
+// components (day-summary-modal.component.*, game-over-modal.component.*)
+// with fully tavern-themed, component-scoped styles — under Angular's
+// emulated encapsulation this parent-scoped stylesheet can never reach
+// classes rendered by a child's own template, so those old rules were dead
+// weight. Only the Tutorial and Keyboard Shortcuts overlays below are still
+// rendered directly in potion-stand.component.html, so they're the only
+// modal surfaces styled from this file.
+
+// Keyboard Shortcut Help Overlay — tavern parchment card, mirroring
+// day-summary-modal / game-over-modal's material vocabulary. Tokens are
+// remapped only within `.help-overlay` so the rest of the shell keeps
+// whichever palette (cave, generic) it already had.
+.help-overlay,
+.help-overlay * {
+  @include tavern-tokens;
+}
+
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  // Theme-aware scrim: dark enough to focus attention but not solid black in
+  // day-mode where a hard #000 mask looks out of place against cream parchment.
+  background: color-mix(in srgb, var(--bg-color) 30%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.help-content {
+  background: linear-gradient(168deg, var(--tavern-parchment), var(--tavern-parchment-2));
+  border: 2px solid var(--tavern-frame);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tavern-gold) 20%, transparent),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: $radius-medium;
+  padding: $spacing-generous;
+  max-width: 320px;
+  width: 90%;
+
+  h3 {
+    @include tavern-heading;
+    margin: 0 0 $spacing-standard;
+    font-size: $text-medium;
+  }
+}
+
+.help-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+}
+
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-tight;
+  font-size: $text-small;
+  color: var(--text-color);
+
+  kbd {
+    @include tavern-slot;
+    display: inline-block;
+    min-width: 28px;
+    padding: $spacing-micro $spacing-tight;
+    font-family: $font-mono;
+    font-size: $text-small;
+    text-align: center;
+    color: var(--tavern-gold);
+  }
+}
+
+.help-close {
+  @include tavern-button-gold;
+  @include focus-visible-ring;
+  margin-top: $spacing-comfortable;
+  width: 100%;
+  padding: $spacing-tight;
+}
+
+// =============================================================================
+// Tutorial overlay — same tavern parchment card as the Help overlay, above.
+// =============================================================================
+
+.tutorial-overlay,
+.tutorial-overlay * {
+  @include tavern-tokens;
+}
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  // Theme-aware scrim — matches the help-overlay treatment for consistency
+  background: color-mix(in srgb, var(--bg-color) 25%, transparent);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-card {
+  background: linear-gradient(168deg, var(--tavern-parchment), var(--tavern-parchment-2));
+  border: 2px solid var(--tavern-frame);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tavern-gold) 20%, transparent),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: $radius-medium;
+  padding: $spacing-generous;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  z-index: 301;
+
+  h3 {
+    @include tavern-heading;
+    margin: 0 0 $spacing-standard;
+    font-size: $text-medium;
+  }
+
+  p {
+    margin: 0 0 $spacing-comfortable;
+    color: var(--text-color);
+    font-size: $text-base;
+    line-height: 1.5;
+  }
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: $spacing-standard;
+  justify-content: center;
+}
+
+.tutorial-skip {
+  @include tavern-button;
+  @include focus-visible-ring;
+  padding: $spacing-tight $spacing-major;
+  font-size: $text-base;
+  min-height: 44px;
+}
+
+.tutorial-next {
+  @include tavern-button-gold;
+  @include focus-visible-ring;
+  padding: $spacing-tight $spacing-generous;
+  font-size: $text-base;
+  min-height: 44px;
+}
+
+.tutorial-progress {
+  display: flex;
+  justify-content: center;
+  gap: $spacing-tight;
+  margin-top: $spacing-comfortable;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  // Theme-aware inactive dot — tints from the tavern frame so it reads as a
+  // dim stud on the parchment in both day and night variants
+  background: color-mix(in srgb, var(--tavern-gold) 20%, var(--tavern-frame));
+
+  &.active {
+    background: var(--tavern-gold);
+  }
+}

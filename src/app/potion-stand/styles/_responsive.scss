@@ -1,0 +1,562 @@
+@use './design-system' as *;
+
+// =============================================================================
+// Responsive Design - Mobile-first adjustments
+// Breakpoint: 64rem (1024px) - Tablets and below
+// =============================================================================
+
+// Mobile tab navigation — hidden by default on desktop/tablet
+.mobile-tabs {
+  display: none;
+}
+
+.merchant-tips-wrapper {
+  height: 100%;
+}
+
+// =============================================================================
+// Tablet breakpoint: 768px–1023px — 2-column layout
+// =============================================================================
+@media (max-width: 1023px) and (min-width: 768px) {
+  .game-grid {
+    grid-template-columns: 1fr 1fr;
+    // The counter carries the game's primary decisions, so give its row more
+    // of the fixed SPA height. Both panels retain their own scroll containment
+    // on short landscape tablets.
+    grid-template-rows: 28% minmax(0, 1fr) auto;
+    padding-left: $spacing-comfortable;
+    padding-right: $spacing-comfortable;
+  }
+
+  .customers-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .potions-panel {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .dungeon-panel {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .shell-game-section {
+    grid-column: 1;
+    grid-row: 3;
+    min-height: auto; // Override desktop 160px — tablet uses content-sized shell game
+  }
+
+  .potions-panel.merchant-expanded {
+    grid-row: 1 / 3;
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .potion-stand-container {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .game-header {
+    padding: $spacing-tight $spacing-comfortable;
+
+    .header-row {
+      flex-wrap: wrap;
+      gap: $spacing-tight;
+
+      .game-title {
+        font-size: $text-large;
+      }
+
+      .header-right {
+        gap: $spacing-tight;
+      }
+    }
+
+    .stats-bar {
+      gap: $spacing-tight;
+      justify-content: center;
+
+      .stat {
+        min-width: 2.5rem;
+
+        .stat-value {
+          font-size: $text-base;
+        }
+
+        .stat-label {
+          font-size: $text-micro;
+        }
+      }
+    }
+  }
+
+  .game-grid {
+    min-height: 60vh;
+    gap: $spacing-tight;
+  }
+
+  .customers-panel,
+  .potions-panel,
+  .dungeon-panel {
+    min-height: 20rem;
+  }
+
+  .summary-modal {
+    max-width: 95vw;
+    padding: $spacing-standard;
+  }
+}
+
+// =============================================================================
+// Mobile: < 768px — Single column, tab navigation, compact header
+// Sprints 7-12: Reclaim ~80-100px of vertical header space on mobile
+// Target: iPhone 12 Pro (390×844)
+// =============================================================================
+@media (max-width: 767px) {
+  // The portfolio shell already reserves the live footer and gives the demo an
+  // exact-height flex slot. Inheriting that slot avoids the old hard-coded
+  // 70px footer estimate (the real footer is responsive) and keeps the final
+  // shelf row from being clipped on taller or narrower phones.
+  .potion-stand-container {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    padding: $spacing-micro;
+    padding-top: max($spacing-micro, env(safe-area-inset-top)); // Sprint 31: iPhone notch support
+  }
+
+  // ── Sprints 7-12: Header overrides moved to game-header.component.scss ──
+  // (Angular encapsulation requires these in the component's own SCSS)
+
+  // ── Mobile tab navigation ──
+  .mobile-tabs {
+    display: flex;
+    gap: 0;
+    // Solid theme-aware background so inactive tab labels are readable over
+    // both day-mode cream parchment and night-mode dark.
+    // --surface-alt is undefined globally; use --text-area-color instead.
+    background: var(--text-area-color);
+    border-bottom: 2px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+
+    button {
+      flex: 1;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-color-muted, #888);
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition:
+        color $animation-fast $easing-standard,
+        border-bottom-color $animation-fast $easing-standard,
+        background $animation-fast $easing-standard;
+
+      &.active {
+        color: var(--game-gold, #f59e0b);
+        border-bottom-color: var(--game-gold, #f59e0b);
+        background: rgba(245, 158, 11, 0.1);
+        font-weight: 600;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--focus-color, #4fc3f7);
+        outline-offset: -2px;
+      }
+
+      .tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        margin-left: 4px;
+        border-radius: 9px;
+        background: color-mix(in srgb, var(--text-color) 15%, transparent);
+        color: var(--text-color-muted, #888);
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+
+        // Sprint 35: Danger variant — at least one adventurer below 30% HP
+        &.danger {
+          background: color-mix(in srgb, var(--game-danger) 30%, transparent);
+          color: var(--game-danger);
+        }
+      }
+
+      .tab-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-left: 4px;
+        border-radius: 50%;
+        background: var(--game-gold, #f59e0b);
+        vertical-align: middle;
+      }
+    }
+  }
+
+  .game-grid {
+    grid-template-columns: 1fr;
+    overflow-x: hidden;
+    overflow-y: auto;
+    gap: 0;
+    padding-left: 4px; // enough for card borders to not clip at edges
+    padding-right: 4px;
+    padding-bottom: max(64px, env(safe-area-inset-bottom, 64px)); // Clear footer + home indicator
+    min-height: auto; // Override 60vh from tablet breakpoint
+    align-content: start; // Pack grid items to top instead of stretching
+  }
+
+  // Mobile panels — reset desktop grid placement, section dividers, content-driven height
+  .customers-panel,
+  .potions-panel,
+  .dungeon-panel,
+  .shell-game-section {
+    grid-column: auto;
+    grid-row: auto;
+    padding: 4px;
+    min-height: auto;
+    overflow: auto;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+
+  // Potions-panel — content flows naturally, but clip horizontally to prevent bleed
+  .potions-panel {
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding-bottom: 8px;
+  }
+
+  // The Stillroom uses a fixed scrim inside the transformed game canvas. Let
+  // that one deliberate overlay escape the tab's normal scroll clipping so
+  // its warning and both 44px decision buttons stay visible on short phones.
+  .game-grid.decision-open,
+  .potions-panel.decision-open {
+    overflow: visible;
+  }
+
+  .game-grid.decision-open {
+    position: relative;
+    z-index: 20;
+  }
+
+  .potions-panel.decision-open {
+    z-index: 21;
+  }
+
+  // Sprint 23: Dungeon panel fills available viewport height when on its own tab
+  // Overrides shared min-height: auto above (this rule must come after it)
+  // 70px = footer, 44px = tab bar, 80px ≈ game header
+  // Sprint 28: padding-bottom clears the last log entry from the footer
+  .dungeon-panel {
+    min-height: calc(100dvh - 70px - 44px - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 12px;
+  }
+
+  // Sprint 16: Shell game section needs breathing room below the customer carousel
+  .shell-game-section {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  // min-height prevents layout jumps when queue transitions empty ↔ populated
+  // overflow-y: auto scrolls the customer list within the 1fr grid row while shell game stays pinned below
+  .customers-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 80px;
+  }
+
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  // Merchant phase: dungeon-panel shows merchant-tips — disable inner scroll,
+  // let .game-grid handle scrolling instead of creating a nested scroll trap
+  .dungeon-panel.merchant-phase {
+    overflow-y: visible;
+    min-height: auto;
+  }
+
+  // Touch-friendly targets (44px minimum)
+  button,
+  [role='button'],
+  .potion-card,
+  .adventurer-card {
+    min-height: 44px;
+  }
+
+  // Dead code removed (Sprints 1-2): .potion-grid, .panel-title, .queue-count, .floor-badge
+  // rules were inside child components — Angular encapsulation blocked them.
+  // Live rules are in potion-shop.component.scss, customer-queue.component.scss,
+  // dungeon-activity.component.scss respectively.
+
+  // Colored panel accent borders removed — didn't work with edge-to-edge layout
+
+  // ── Sprint 35: Empty state centering and compact styling on mobile ──
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    padding: 16px;
+    text-align: center;
+    font-size: 13px;
+
+    p {
+      margin: 0 0 4px;
+    }
+  }
+
+  // ── Sprint 37: Market ticker compact on mobile ──
+  .market-ticker {
+    font-size: 11px;
+    padding: 2px 0;
+  }
+
+  // ── Sprint 37: Event banner — narrower, compact on mobile ──
+  // Push below safe-area inset so the banner is never clipped by the notch,
+  // and round the top corners since it's no longer flush with the viewport edge.
+  .event-banner {
+    top: max(#{$spacing-tight}, env(safe-area-inset-top, #{$spacing-tight}));
+    max-width: min(calc(100vw - 16px), 28rem);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-top: 1px solid var(--game-warning);
+    border-radius: $radius-small;
+
+    .event-icon {
+      font-size: 14px;
+    }
+
+    .event-title {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .event-description {
+      font-size: 11px;
+    }
+  }
+
+  // ── Message toast — compact + safe-area aware on mobile. Bottom-anchored,
+  // so it stacks independently of the top-anchored .event-banner above. ──
+  .message-bar {
+    bottom: max(#{$spacing-tight}, env(safe-area-inset-bottom, #{$spacing-tight}));
+    max-width: min(calc(100vw - 16px), 28rem);
+    padding: 6px 8px;
+    font-size: 12px;
+
+    &__icon {
+      font-size: 14px;
+    }
+  }
+
+  // Dead code removed (Sprints 3-4): .shell-game-container, .shell-potion, .potion-won-indicator
+  // rules were inside shell-game.component — Angular encapsulation blocked them.
+  // Live rules are in shell-game.component.scss.
+
+  // ── Sprint 20: Tutorial overlay — full-screen on mobile ──
+  // Panels are tabbed, not visible simultaneously, so spotlight doesn't apply
+  .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200; // Above guilt vignette (z-index: 100)
+  }
+
+  .tutorial-card {
+    position: fixed;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 32px); // Full width with 16px margin each side
+    max-width: 400px;
+    z-index: 201;
+  }
+
+  // Spotlight makes no sense on mobile tab layout — target panel may not be visible
+  .tutorial-spotlight {
+    display: none;
+  }
+
+  .tutorial-actions {
+    display: flex;
+    gap: 8px;
+
+    .tutorial-next,
+    .tutorial-skip {
+      min-height: 44px; // Touch-friendly targets
+      flex: 1;
+      font-size: 14px;
+    }
+  }
+
+  // Dead code removed (Sprint 5): .summary-overlay, .gameover-overlay
+  // rules duplicated what's already in component SCSSes.
+  // Live rules are in day-summary-modal.component.scss and game-over-modal.component.scss.
+
+  // ── Sprint 40: Help overlay mobile layout ──
+  .help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+  }
+
+  .help-content {
+    width: calc(100vw - 32px);
+    max-width: 400px;
+    padding: 16px;
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .help-grid {
+      grid-template-columns: 1fr; // Single column on mobile
+      gap: 6px;
+    }
+
+    .help-row {
+      font-size: 13px;
+      padding: 6px 0;
+
+      kbd {
+        min-width: 28px;
+        font-size: 12px;
+      }
+    }
+
+    .help-close {
+      min-height: 44px;
+      width: 100%;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+  }
+
+  // ── Sprint 41: Guilt vignette scoped to game area on mobile ──
+  .guilt-vignette {
+    position: absolute; // Relative to .potion-stand-container instead of viewport
+    inset: 0;
+    z-index: 50; // Below modals but above game content
+    max-height: calc(100dvh - 70px); // Don't bleed onto footer
+  }
+
+  // ── Sprint 41: Floating death skull — contained within game area ──
+  .floating-death {
+    position: absolute;
+
+    .death-icon {
+      font-size: 2rem; // Smaller than desktop
+    }
+
+    .death-words {
+      font-size: 11px;
+      max-width: 200px;
+    }
+  }
+
+  // ── Sprint 44: Purchase animation compact on mobile ──
+  .purchase-overlay {
+    .purchase-amount {
+      font-size: 14px;
+    }
+  }
+}
+
+// =============================================================================
+// Landscape phones — extremely limited vertical space
+// =============================================================================
+@media (max-height: 500px) and (orientation: landscape) {
+  // Note: .game-header rules moved to game-header.component.scss (encapsulation)
+  // Note: .panel-title rules are inside child components (encapsulation)
+
+  // Minimal tab bar — keep WCAG 2.5.5 44px even in landscape phone mode.
+  // Font size stays small to preserve the cramped landscape layout.
+  .mobile-tabs button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  // Tighter panels (these ARE parent-level elements, so they work here)
+  .customers-panel,
+  .potions-panel,
+  .dungeon-panel,
+  .shell-game-section {
+    padding: 4px;
+  }
+}
+
+// =============================================================================
+// Reduced Motion Accessibility
+// Disables animations for users who prefer reduced motion
+// =============================================================================
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  // Disable floating death animation
+  .floating-death {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  // Disable message bar animation
+  .message-bar {
+    animation: none !important;
+  }
+
+  // Disable event banner animation
+  .event-banner {
+    animation: none !important;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  // Note: Modal, purchase, and shell-game animation overrides are in their
+  // respective component SCSSes (Angular encapsulation). The universal *
+  // selector above handles them via animation-duration: 0.01ms.
+}
+
+// =============================================================================
+// Night-mode overrides for mobile tab navigation
+// =============================================================================
+
+// In night-mode, deepen the tab bar background so active/inactive contrast
+// stays sharp against the dark canvas. --text-area-color is already darker
+// in night-mode, but a slight extra tint anchors the bar visually.
+:host-context(.night-mode) {
+  @media (max-width: 767px) {
+    .mobile-tabs {
+      background: color-mix(in srgb, var(--text-color) 6%, var(--bg-color));
+    }
+  }
+}

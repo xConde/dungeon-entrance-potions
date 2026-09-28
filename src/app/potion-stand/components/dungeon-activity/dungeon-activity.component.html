@@ -1,0 +1,84 @@
+<div class="dungeon-activity-panel" [style.--fog-opacity]="(currentFloor / 15) * 0.5">
+  <h2 class="panel-title">
+    Dungeon Activity
+    <span class="floor-badge">Floor {{ currentFloor }}</span>
+  </h2>
+
+  <!-- Active adventurers - compact list -->
+  @if (adventurers.length > 0) {
+    <div class="dungeon-adventurers" appScrollableFade [watchContent]="true" [disableSpacer]="true">
+      @for (adventurer of adventurers; track adventurer.id) {
+        <div class="dungeon-adventurer">
+          <span class="name">{{ adventurer.name }}</span>
+          <span class="status" [class]="adventurer.status">{{ adventurer.status | uppercase }}</span>
+          <!-- Show HP bar when fighting or looting, survival chance otherwise -->
+          @if (adventurer.status === 'fighting' || adventurer.status === 'looting') {
+            <div class="hp-indicator">
+              <div
+                class="hp-bar"
+                [class]="getHpClass(adventurer.currentHp, adventurer.maxHp)"
+                [style.width.%]="(adventurer.currentHp / adventurer.maxHp) * 100"
+              ></div>
+              <span class="hp-text">{{ adventurer.currentHp }}/{{ adventurer.maxHp }}</span>
+            </div>
+          } @else {
+            <div class="survival-indicator">
+              <div class="survival-bar" [class]="getSurvivalClass(adventurer.survivalChance)"></div>
+              <span class="survival-percent">{{ (adventurer.survivalChance * 100).toFixed(0) }}%</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- SR-only assertive region: only high-signal events (death / victory / boss) are
+       routed here so screen readers aren't flooded by per-tick combat noise. -->
+  <div class="sr-only-announcer" role="status" aria-live="assertive" aria-atomic="true" aria-label="Dungeon alert">
+    {{ srAnnouncement }}
+  </div>
+
+  <!-- Event log — visible to all. Low-severity (info) entries are marked
+       aria-hidden so the polite live region doesn't repeat per-tick noise. -->
+  <div
+    class="dungeon-log"
+    role="log"
+    aria-live="polite"
+    aria-label="Dungeon activity log"
+    appScrollableFade
+    [watchContent]="true"
+    [disableSpacer]="true"
+  >
+    @for (event of events; track event.id) {
+      <div
+        class="log-entry"
+        [class]="event.severity"
+        [attr.title]="getAdventurerTitle(event.adventurerId)"
+        [attr.aria-hidden]="event.severity === 'info' ? 'true' : null"
+        (click)="toggleEventDetail(event.id)"
+      >
+        <span class="log-time">{{ getTimeAgo(event.timestamp) }}</span>
+        @if (event.eventType === 'death') {
+          <span class="log-icon death" [innerHTML]="deathIconSvg"></span>
+        }
+        @if (event.eventType === 'refuse') {
+          <span class="log-icon refuse" [innerHTML]="refuseIconSvg"></span>
+        }
+        <span
+          class="log-message"
+          [innerHTML]="formatLogMessage(event.message, showFullNames)"
+          (click)="onLogMessageClick($event)"
+        ></span>
+        @if (expandedEventId === event.id) {
+          <div class="event-detail">{{ getTimeAgo(event.timestamp) }}</div>
+        }
+      </div>
+    }
+    @if (events.length === 0) {
+      <div class="empty-state">
+        <p>No one's braving the dungeon yet.</p>
+        <p class="empty-hint">Sell a potion to a customer and they'll head down.</p>
+      </div>
+    }
+  </div>
+</div>

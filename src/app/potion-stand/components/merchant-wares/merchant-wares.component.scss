@@ -1,0 +1,193 @@
+// =============================================================================
+// Merchant Wares Component - Morning merchant inventory panel
+// =============================================================================
+@use '../../styles/design-system' as *;
+@use '../../styles/tavern' as *;
+
+// =============================================================================
+// Host & Container
+// =============================================================================
+:host {
+  @include tavern-tokens; // remap text/border/area/gold to the tavern palette
+  display: block;
+  height: 100%;
+}
+
+// `.night-mode *` / `.day-mode *` override a plain :host remap per-element;
+// `:host *` re-asserts the tavern palette with the specificity to win.
+:host * {
+  @include tavern-tokens;
+  // Re-cross the encapsulation boundary for the shell's global focus-color
+  // reset — see the matching comment in game-header.component.scss.
+  --focus-color: inherit;
+}
+
+.merchant-wares-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  // Same pattern as .merchant-inventory-panel — the parent .customers-panel
+  // has overflow: hidden, so this column needs min-height: 0 to host an
+  // inner scroll cleanly.
+  min-height: 0;
+  gap: $spacing-comfortable;
+}
+
+// Scrollable wares region. Engages only when the list overflows the
+// available height; with the current 5-potion catalog it usually doesn't.
+// overscroll-behavior: contain stops wheel events from chaining out of
+// the panel when the user reaches the top/bottom.
+.wares-scroll-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  // Once the catalog grows past the visible height, Chromium makes this
+  // overflowing region keyboard-focusable on its own (no author tabindex
+  // needed) so it can be scrolled with arrow keys. Without an explicit ring
+  // here that stop would render the browser's native blue "auto" outline
+  // instead of this project's amber system.
+  &:focus-visible {
+    outline: 2px solid var(--focus-color, #4fc3f7);
+    outline-offset: -2px;
+  }
+}
+
+// Pinned action footer. Mirrors .merchant-action in the middle panel —
+// flex-shrink: 0 keeps the Buy All CTA visible regardless of scroll.
+.wares-action {
+  flex-shrink: 0;
+  padding-top: $spacing-standard;
+  border-top: 1px solid var(--border-color);
+
+  .bulk-btn {
+    @include tavern-button-gold;
+    @include focus-visible-ring;
+    width: 100%;
+    padding: $spacing-tight $spacing-standard;
+    font-size: $text-base;
+  }
+}
+
+// =============================================================================
+// Panel Title
+// =============================================================================
+.panel-title {
+  @include tavern-heading;
+  font-size: $text-xlarge;
+  margin: 0 0 $spacing-tight;
+  padding-bottom: $spacing-tight;
+  border-bottom: 1px solid color-mix(in srgb, var(--tavern-gold) 35%, transparent);
+  flex-shrink: 0;
+}
+
+// =============================================================================
+// Ware Items List
+// =============================================================================
+.merchant-wares-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-tight;
+  flex: 1;
+}
+
+.ware-item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-tight $spacing-standard;
+  @include tavern-slot;
+  gap: $spacing-standard;
+  transition: opacity $animation-standard $easing-standard;
+
+  &.sold-out {
+    opacity: 0.5;
+  }
+
+  app-potion-bottle {
+    flex-shrink: 0;
+  }
+
+  .ware-info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-micro;
+    flex: 1;
+    min-width: 0;
+
+    .ware-name {
+      font-size: $text-base;
+      font-weight: $weight-medium;
+    }
+
+    .ware-stock {
+      font-size: $text-small;
+      color: var(--text-color-muted);
+    }
+  }
+
+  .buy-btn {
+    @include tavern-button;
+    @include text-data; // mono for the coin cost (after the mixin so it wins)
+    @include focus-visible-ring;
+    padding: $spacing-tight $spacing-standard;
+    font-size: $text-small;
+    min-width: 4rem;
+    flex-shrink: 0;
+  }
+}
+
+// =============================================================================
+// Legacy .bulk-buy-row removed — Buy All now lives under .wares-action
+// outside the scroll region. See top of file.
+// =============================================================================
+
+@media (max-width: 767px) {
+  :host {
+    height: auto;
+  }
+
+  .merchant-wares-panel {
+    height: auto;
+  }
+
+  // On mobile the host itself scrolls; flatten the desktop scroll wrapper
+  // so we don't create a nested scroll container.
+  .wares-scroll-area {
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .wares-action {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-color, #1a1a1a);
+    padding: 8px 0;
+    margin-top: auto;
+    z-index: 5;
+
+    .bulk-btn {
+      min-height: 48px;
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+  }
+
+  .merchant-wares-list {
+    gap: 4px;
+  }
+
+  .ware-item {
+    padding: 6px 8px;
+    gap: 8px;
+    font-size: 12px;
+
+    .buy-btn {
+      min-height: 44px;
+      font-size: 13px;
+      padding: 8px 12px;
+      touch-action: manipulation;
+    }
+  }
+}

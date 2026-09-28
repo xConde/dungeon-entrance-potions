@@ -1,0 +1,157 @@
+<div class="customer-queue-panel">
+  <!-- Combo signal — lives outside cards so it outlives card removal -->
+  @if (comboSignal) {
+    <div class="combo-signal" [class]="getComboSmokeClass(comboSignal.name)">
+      <span class="combo-label">{{ comboSignal.name }}</span>
+    </div>
+  }
+
+  <h2 class="panel-title">
+    Customers
+    <span class="queue-count">{{ adventurers.length }}/5</span>
+  </h2>
+  <!-- role=group, not list: the cards are buttons (selectable, aria-pressed),
+       which are not valid listitem children, and the fade directive injects
+       extra nodes that fail aria-required-children under a list role. -->
+  <div
+    class="customer-queue"
+    role="group"
+    aria-label="Customer queue"
+    appScrollableFade
+    [watchContent]="true"
+    [disableSpacer]="true"
+  >
+    @for (adventurer of adventurers; track adventurer.id) {
+      <div
+        class="adventurer-card"
+        #adventurerCard
+        [class.selected]="selectedAdventurer?.id === adventurer.id"
+        [class.desperate]="adventurer.desperate"
+        [class.low-hp]="hpRatio(adventurer) < 0.5"
+        [class.wants-more]="adventurer.potionsConsumed.length === 1"
+        (click)="onSelectAdventurer(adventurer)"
+        (keydown.enter)="onSelectAdventurer(adventurer)"
+        (keydown.space)="onSelectAdventurer(adventurer); $event.preventDefault()"
+        tabindex="0"
+        role="button"
+        [attr.aria-label]="buildAdventurerAriaLabel(adventurer)"
+        [attr.aria-pressed]="selectedAdventurer?.id === adventurer.id"
+      >
+        <!-- Top row: Class icon + Name + Badges left, Gold right -->
+        <div class="adventurer-header">
+          <div class="adventurer-left">
+            <div class="name-row">
+              <span
+                class="class-icon"
+                [innerHTML]="getClassIconSvg(adventurer.class)"
+                [title]="adventurer.class"
+              ></span>
+              <span class="adventurer-name">{{ adventurer.name }}</span>
+              <div class="adventurer-badges">
+                @if (adventurer.isReturning) {
+                  <span
+                    class="badge returning"
+                    title="Returning customer: survived last time."
+                    aria-label="Returning customer"
+                    [innerHTML]="getReturningBadgeSvg()"
+                  ></span>
+                }
+                @if (adventurer.desperate) {
+                  <span
+                    class="badge desperate"
+                    title="Desperate: will pay more, no questions asked."
+                    aria-label="Desperate"
+                    >!</span
+                  >
+                }
+                @if (hpRatio(adventurer) < 0.5) {
+                  <span class="badge low-hp" title="Low health: needs a healing potion." aria-label="Low health"
+                    >HP</span
+                  >
+                }
+                @if (adventurer.gold > 150) {
+                  <span class="badge wealthy" title="Wealthy" aria-label="Wealthy">$</span>
+                }
+              </div>
+            </div>
+          </div>
+          <span class="adventurer-gold coin">{{ adventurer.gold }}</span>
+        </div>
+
+        <div class="adventurer-class">
+          <span class="class-info">
+            Lv{{ adventurer.level }} {{ adventurer.class }}
+            @if (adventurer.frugal) {
+              <span class="trait-inline" title="Haggles prices: pays 20% less">Frugal</span>
+            }
+            @if (adventurer.trusting) {
+              <span class="trait-inline" title="Buys anything without question">Trusting</span>
+            }
+            @if (adventurer.experienced) {
+              <span class="trait-inline" title="Detects watered-down potions">Experienced</span>
+            }
+          </span>
+          @if (adventurer.potionsConsumed.length > 0) {
+            <span class="potion-slots">
+              @for (potion of adventurer.potionsConsumed; track $index) {
+                <span class="potion-chip filled" [class]="getPotionSlotType(potion)">
+                  {{ getPotionSlotLabel(potion) }}
+                </span>
+              }
+              @if (adventurer.potionsConsumed.length < 2) {
+                <span
+                  class="potion-chip empty"
+                  title="Can take a 2nd potion. A different type triggers a combo bonus."
+                  aria-label="Second potion slot: sell a different type for a combo bonus"
+                  >+combo?</span
+                >
+              }
+            </span>
+          }
+          @if (getClassAbility(adventurer.class)) {
+            <span class="ability-tag" [title]="getClassAbilityDesc(adventurer.class)">{{
+              getClassAbility(adventurer.class)
+            }}</span>
+          }
+        </div>
+
+        @if (adventurer.speechBubble) {
+          <div class="speech-bubble">{{ adventurer.speechBubble }}</div>
+        }
+
+        <!-- Health bar with label -->
+        <div class="hp-section">
+          <div class="hp-bar">
+            <div
+              class="hp-fill"
+              [style.width.%]="hpRatio(adventurer) * 100"
+              [class.low]="hpRatio(adventurer) < 0.3"
+              [class.medium]="hpRatio(adventurer) >= 0.3 && hpRatio(adventurer) < 0.6"
+            ></div>
+          </div>
+          <span class="hp-text">{{ adventurer.currentHp }}/{{ adventurer.maxHp }}</span>
+        </div>
+
+        <!-- Purchase animation overlay -->
+        @if (purchaseAnimation?.adventurerId === adventurer.id) {
+          <div class="purchase-overlay">
+            <span class="purchase-amount coin">+{{ purchaseAnimation!.amount }}</span>
+          </div>
+        }
+      </div>
+    }
+    @if (adventurers.length === 0) {
+      <div class="empty-state">
+        <p>No adventurers yet.</p>
+        <p class="hint">{{ getTimeBasedHint() }}</p>
+      </div>
+    }
+  </div>
+  @if (adventurers.length > 1) {
+    <div class="scroll-dots">
+      @for (a of adventurers; track a.id) {
+        <span class="dot" [class.active]="a === selectedAdventurer"></span>
+      }
+    </div>
+  }
+</div>
